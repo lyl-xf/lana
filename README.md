@@ -2,13 +2,6 @@
 基于 **.NET 9 + Avalonia 12** 的跨平台桌面应用骨架，带炫酷深色 Aurora 风格界面。
 
 
-## 运行
-
-```bash
-dotnet restore
-dotnet run --project AvaloniaUse.csproj
-```
-
 ## 跨平台发布
 
 ```bash
