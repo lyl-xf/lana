@@ -77,9 +77,41 @@
               "target": "Package",
               "version": "[2.1.66, )"
             },
+            "IoTClient": {
+              "target": "Package",
+              "version": "[1.0.40, )"
+            },
+            "LibVLCSharp": {
+              "target": "Package",
+              "version": "[3.9.7, )"
+            },
+            "LibVLCSharp.Avalonia": {
+              "target": "Package",
+              "version": "[3.9.7, )"
+            },
+            "MQTTnet": {
+              "target": "Package",
+              "version": "[4.3.3.952, )"
+            },
             "Microsoft.Data.Sqlite": {
               "target": "Package",
               "version": "[9.0.4, )"
+            },
+            "System.IO.Ports": {
+              "target": "Package",
+              "version": "[9.0.4, )"
+            },
+            "ToolGood.Words.Pinyin": {
+              "target": "Package",
+              "version": "[3.1.0.4, )"
+            },
+            "VideoLAN.LibVLC.Mac": {
+              "target": "Package",
+              "version": "[3.1.2, )"
+            },
+            "VideoLAN.LibVLC.Windows": {
+              "target": "Package",
+              "version": "[3.0.21, )"
             }
           },
           "imports": [

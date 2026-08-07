@@ -49,38 +49,40 @@
             </Button>
 
             <Button Classes="nav-button"
-                    Command="{Binding NavigateProjectsCommand}"
-                    Classes.nav-active="{Binding IsProjectsSelected}">
+                    Command="{Binding NavigateDefinedPageCommand}"
+                    Classes.nav-active="{Binding IsDefinedPageSelected}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="◫" FontSize="16" Width="20"/>
+                <TextBlock Text="定义页面"/>
+              </StackPanel>
+            </Button>
+
+            <Button Classes="nav-button"
+                    IsVisible="{Binding IsAdmin}"
+                    Command="{Binding NavigateDevicesCommand}"
+                    Classes.nav-active="{Binding IsDevicesSelected}">
               <StackPanel Orientation="Horizontal" Spacing="10">
                 <TextBlock Text="▦" FontSize="16" Width="20"/>
-                <TextBlock Text="项目"/>
+                <TextBlock Text="设备管理"/>
               </StackPanel>
             </Button>
 
             <Button Classes="nav-button"
-                    Command="{Binding NavigateMessagesCommand}"
-                    Classes.nav-active="{Binding IsMessagesSelected}">
-              <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="✉" FontSize="16" Width="20"/>
-                <TextBlock Text="消息"/>
-              </StackPanel>
-            </Button>
-
-            <Button Classes="nav-button"
-                    Command="{Binding NavigateAnalyticsCommand}"
-                    Classes.nav-active="{Binding IsAnalyticsSelected}">
+                    IsVisible="{Binding IsAdmin}"
+                    Command="{Binding NavigateCamerasCommand}"
+                    Classes.nav-active="{Binding IsCamerasSelected}">
               <StackPanel Orientation="Horizontal" Spacing="10">
                 <TextBlock Text="▣" FontSize="16" Width="20"/>
-                <TextBlock Text="数据"/>
+                <TextBlock Text="摄像头管理"/>
               </StackPanel>
             </Button>
 
             <Button Classes="nav-button"
-                    Command="{Binding NavigateAboutCommand}"
-                    Classes.nav-active="{Binding IsAboutSelected}">
+                    Command="{Binding NavigateHistoryCommand}"
+                    Classes.nav-active="{Binding IsHistorySelected}">
               <StackPanel Orientation="Horizontal" Spacing="10">
-                <TextBlock Text="ⓘ" FontSize="16" Width="20"/>
-                <TextBlock Text="关于"/>
+                <TextBlock Text="◷" FontSize="16" Width="20"/>
+                <TextBlock Text="历史数据"/>
               </StackPanel>
             </Button>
 

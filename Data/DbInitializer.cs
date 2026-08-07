@@ -1,6 +1,7 @@
 using Lana.Data.Entities;
 using Lana.Data.Mappers;
 using Lana.Data.Sqlite;
+using Lana.Gateway.Data;
 
 namespace Lana.Data;
 
@@ -31,6 +32,9 @@ public static class DbInitializer
 
             CREATE UNIQUE INDEX IF NOT EXISTS IX_Settings_Key ON Settings(Key);
             """);
+
+        await GatewaySchema.EnsureAsync(session);
+        await Lana.Cameras.Data.CameraSchema.EnsureAsync(session);
 
         var userMapper = new UserMapper(sessionFactory);
         var settingMapper = new SettingMapper(sessionFactory);

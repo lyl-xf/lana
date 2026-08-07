@@ -1,0 +1,31 @@
+Lana — Third-Party Open Source Notices
+=====================================
+
+This application uses the following third-party components related to camera preview.
+
+1) LibVLCSharp / LibVLCSharp.Avalonia
+   Copyright (C) VideoLAN and contributors
+   License: GNU Lesser General Public License version 2.1 or later (LGPL-2.1+)
+   Source: https://code.videolan.org/videolan/LibVLCSharp
+   NuGet: LibVLCSharp, LibVLCSharp.Avalonia
+
+2) LibVLC (native libraries, bundled via NuGet)
+   Copyright (C) VideoLAN and VLC authors
+   License: GNU Lesser General Public License version 2.1 or later (LGPL-2.1+)
+   Source: https://code.videolan.org/videolan/vlc
+   NuGet: VideoLAN.LibVLC.Windows / VideoLAN.LibVLC.Mac
+   Note: On Linux, LibVLC is typically provided by the system packages; see VideoLAN docs.
+
+The full LGPL-2.1 license text is included in this folder as LGPL-2.1.txt, and is also
+available at: https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html
+
+Compliance notes for redistributors
+-----------------------------------
+- Lana dynamically loads LibVLC native libraries shipped alongside the application
+  (or provided by the OS on Linux). These libraries remain replaceable.
+- Lana does not modify the LibVLC / LibVLCSharp source code.
+- You may obtain the corresponding source code of LibVLC / LibVLCSharp from the
+  upstream repositories linked above (matching the NuGet / package versions used
+  by this build).
+- Your rights and obligations regarding these LGPL components are governed by
+  LGPL-2.1; this NOTICE does not grant additional rights beyond that license.

@@ -9,7 +9,7 @@ build_property.AvaloniaNameGeneratorAttachDevTools = true
 build_property.AvaloniaUseCompiledBindingsByDefault = true
 build_property.AvaloniaMainPackageVersion = 12.1.1
 build_property.AvaloniaPreviewerNetCoreToolPath = C:\Users\liuyulet\.nuget\packages\avalonia\12.1.1\buildTransitive\\..\tools\net8.0\designer\Avalonia.Designer.HostApp.dll
-build_property.AvaloniaResourcePaths = D:\WorkFile\lana\Assets\lana.ico,D:\WorkFile\lana\Themes\AppTheme.axaml,D:\WorkFile\lana\Assets\lana.ico,D:\WorkFile\lana\App.axaml,D:\WorkFile\lana\Themes\AppTheme.axaml,D:\WorkFile\lana\Views\AboutView.axaml,D:\WorkFile\lana\Views\AnalyticsView.axaml,D:\WorkFile\lana\Views\HomeView.axaml,D:\WorkFile\lana\Views\LoginView.axaml,D:\WorkFile\lana\Views\MainWindow.axaml,D:\WorkFile\lana\Views\MessagesView.axaml,D:\WorkFile\lana\Views\ProjectsView.axaml,D:\WorkFile\lana\Views\SettingsView.axaml,D:\WorkFile\lana\Views\ShellView.axaml
+build_property.AvaloniaResourcePaths = D:\WorkFile\lana\Assets\lana.ico,D:\WorkFile\lana\Themes\AppTheme.axaml,D:\WorkFile\lana\Assets\lana.ico,D:\WorkFile\lana\App.axaml,D:\WorkFile\lana\Themes\AppTheme.axaml,D:\WorkFile\lana\Views\AboutView.axaml,D:\WorkFile\lana\Views\AnalyticsView.axaml,D:\WorkFile\lana\Views\CamerasView.axaml,D:\WorkFile\lana\Views\Controls\CameraVideoTile.axaml,D:\WorkFile\lana\Views\DefinedPageView.axaml,D:\WorkFile\lana\Views\DevicesView.axaml,D:\WorkFile\lana\Views\HistoryView.axaml,D:\WorkFile\lana\Views\HomeView.axaml,D:\WorkFile\lana\Views\LoginView.axaml,D:\WorkFile\lana\Views\MainWindow.axaml,D:\WorkFile\lana\Views\MessagesView.axaml,D:\WorkFile\lana\Views\ProjectsView.axaml,D:\WorkFile\lana\Views\SettingsView.axaml,D:\WorkFile\lana\Views\ShellView.axaml
 build_property.MvvmToolkitEnableINotifyPropertyChangingSupport = true
 build_property._MvvmToolkitIsUsingWindowsRuntimePack = false
 build_property.CsWinRTComponent = 
@@ -40,6 +40,21 @@ build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [D:/WorkFile/lana/Views/AnalyticsView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/WorkFile/lana/Views/CamerasView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/WorkFile/lana/Views/Controls/CameraVideoTile.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/WorkFile/lana/Views/DefinedPageView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/WorkFile/lana/Views/DevicesView.axaml]
+build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
+
+[D:/WorkFile/lana/Views/HistoryView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
 [D:/WorkFile/lana/Views/HomeView.axaml]

@@ -1,0 +1,78 @@
+using System.IO.Ports;
+using IoTClient.Clients.Modbus;
+using IoTClient.Clients.PLC;
+using IoTClient.Common.Enums;
+using IoTClient.Enums;
+using Lana.Gateway.Models;
+
+namespace Lana.Gateway.Services;
+
+public static class IoTClientFactory
+{
+    public static dynamic CreateClient(Device device)
+    {
+        return device.ProtocolType switch
+        {
+            ProtocolType.ModbusTcp => new ModbusTcpClient(device.Ip, device.Port),
+            ProtocolType.ModbusRtu => new ModbusRtuClient(
+                device.PortName, device.BaudRate, device.DataBits,
+                (StopBits)device.StopBits, (Parity)device.Parity),
+            ProtocolType.ModbusAscii => new ModbusAsciiClient(
+                device.PortName, device.BaudRate, device.DataBits,
+                (StopBits)device.StopBits, (Parity)device.Parity),
+            ProtocolType.SiemensClient => new SiemensClient(
+                ParseSiemensVersion(device.PlcVersion),
+                new System.Net.IPEndPoint(System.Net.IPAddress.Parse(device.Ip), device.Port)),
+            ProtocolType.MitsubishiClient => new MitsubishiClient(
+                ParseMitsubishiVersion(device.PlcVersion),
+                device.Ip, device.Port),
+            ProtocolType.OmronFinsClient => new OmronFinsClient(device.Ip, device.Port),
+            _ => throw new NotSupportedException($"协议 {device.ProtocolType} 不受支持（自定义协议已移除）。")
+        };
+    }
+
+    /// <summary>
+    /// IoTClient 枚举为 S7_200Smart；兼容误存的 S7-200Smart / S7200Smart。
+    /// </summary>
+    public static SiemensVersion ParseSiemensVersion(string? plcVersion)
+    {
+        var normalized = NormalizeSiemensVersion(plcVersion);
+        if (Enum.TryParse<SiemensVersion>(normalized, ignoreCase: true, out var version))
+            return version;
+
+        throw new ArgumentException(
+            $"不支持的西门子 PLC 版本「{plcVersion}」。请使用：{string.Join(", ", ProtocolDisplay.SiemensVersions)}");
+    }
+
+    public static string NormalizeSiemensVersion(string? plcVersion)
+    {
+        if (string.IsNullOrWhiteSpace(plcVersion))
+            return nameof(SiemensVersion.S7_1200);
+
+        var value = plcVersion.Trim();
+        if (Enum.TryParse<SiemensVersion>(value, ignoreCase: true, out _))
+            return value;
+
+        // S7-200Smart / S7 200 Smart → S7_200Smart
+        value = value.Replace(" ", string.Empty).Replace('-', '_');
+        if (!value.StartsWith("S7_", StringComparison.OrdinalIgnoreCase) &&
+            value.StartsWith("S7", StringComparison.OrdinalIgnoreCase))
+        {
+            value = "S7_" + value[2..];
+        }
+
+        return value;
+    }
+
+    private static MitsubishiVersion ParseMitsubishiVersion(string? plcVersion)
+    {
+        if (string.IsNullOrWhiteSpace(plcVersion))
+            return MitsubishiVersion.Qna_3E;
+
+        if (Enum.TryParse<MitsubishiVersion>(plcVersion.Trim(), ignoreCase: true, out var version))
+            return version;
+
+        throw new ArgumentException(
+            $"不支持的三菱 PLC 版本「{plcVersion}」。请使用：{string.Join(", ", ProtocolDisplay.MitsubishiVersions)}");
+    }
+}

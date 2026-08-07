@@ -1,0 +1,589 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lana.ViewModels"
+             x:Class="Lana.Views.DevicesView"
+             x:DataType="vm:DevicesViewModel">
+
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Classes="glass-panel" Padding="12,8" Margin="0,10,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding StatusMessage}" Classes="accent-text" FontSize="13"
+                   TextWrapping="Wrap" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Text="忙碌中…" Classes="muted-text" FontSize="12"
+                   IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+      </Grid>
+    </Border>
+
+    <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+      <!-- 设备 -->
+      <TabItem Header="设备">
+        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+          <Border Classes="glass-panel" Padding="14">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Spacing="10">
+                <TextBlock Text="设备列表" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+                <TextBox Text="{Binding SearchText}" Classes="neon-input"
+                         PlaceholderText="按名称搜索…"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="ghost-button" Content="刷新"
+                          Command="{Binding RefreshDevicesCommand}"/>
+                  <Button Classes="cta-button" Content="新建"
+                          Command="{Binding NewDeviceCommand}"/>
+                  <Button Classes="ghost-button" Content="编辑"
+                          Command="{Binding EditSelectedDeviceCommand}"/>
+                  <Button Classes="ghost-button" Content="删除"
+                          Command="{Binding DeleteSelectedDeviceCommand}"/>
+                </StackPanel>
+              </StackPanel>
+
+              <ListBox Classes="entity-list" Margin="0,12,0,0"
+                       ItemsSource="{Binding DeviceListItems}"
+                       SelectedItem="{Binding SelectedDevice}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DeviceListItem">
+                    <Border Classes="list-item-card">
+                      <StackPanel Spacing="6">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                          <Border Classes="list-item-index">
+                            <TextBlock Classes="accent-text" FontWeight="Bold" FontSize="13"
+                                       HorizontalAlignment="Center"
+                                       Text="{Binding Id, StringFormat='#{0}'}"/>
+                          </Border>
+                          <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="primary-text"
+                                     FontWeight="SemiBold" VerticalAlignment="Center"
+                                     TextTrimming="CharacterEllipsis"/>
+                          <Border Grid.Column="2" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding ProtocolName}" Classes="accent-text" FontSize="11"/>
+                          </Border>
+                        </Grid>
+                        <TextBlock Classes="muted-text" FontSize="12" TextTrimming="CharacterEllipsis"
+                                   Text="{Binding Endpoint}"/>
+                        <TextBlock Classes="muted-text" FontSize="11">
+                          <Run Text="{Binding CollectionText}"/>
+                          <Run Text=" · "/><Run Text="{Binding IsActive, StringFormat='启用={0}'}"/>
+                        </TextBlock>
+                        <Border Classes="list-item-divider"/>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </DockPanel>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="16"
+                  IsVisible="{Binding IsEditingDevice}">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="12">
+                <TextBlock Text="设备编辑" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+
+                <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                      RowSpacing="10" ColumnSpacing="12">
+                  <TextBlock Text="设备 Id" Classes="field-label" VerticalAlignment="Center"/>
+                  <NumericUpDown Grid.Column="1" Value="{Binding EditId}" Minimum="1"
+                                 Classes="neon-input" FormatString="0"/>
+
+                  <TextBlock Grid.Row="1" Text="名称" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EditName}" Classes="neon-input"
+                           PlaceholderText="设备名称"/>
+
+                  <TextBlock Grid.Row="2" Text="协议" Classes="field-label" VerticalAlignment="Center"/>
+                  <ComboBox Grid.Row="2" Grid.Column="1"
+                            ItemsSource="{Binding ProtocolOptions}"
+                            SelectedIndex="{Binding EditProtocol}"
+                            HorizontalAlignment="Stretch"/>
+
+                  <TextBlock Grid.Row="3" Text="排序" Classes="field-label" VerticalAlignment="Center"/>
+                  <NumericUpDown Grid.Row="3" Grid.Column="1" Value="{Binding EditSortOrder}"
+                                 Classes="neon-input" FormatString="0"/>
+
+                  <TextBlock Grid.Row="4" Text="数据采集" Classes="field-label" VerticalAlignment="Center"/>
+                  <ToggleSwitch Grid.Row="4" Grid.Column="1" IsChecked="{Binding EditCollectionEnabled}"
+                                OnContent="开" OffContent="关"/>
+
+                  <TextBlock Grid.Row="5" Text="采集周期(ms)" Classes="field-label" VerticalAlignment="Center"
+                             IsVisible="{Binding ShowPollIntervalEditor}"/>
+                  <NumericUpDown Grid.Row="5" Grid.Column="1" Value="{Binding EditPollInterval}"
+                                 Minimum="100" Classes="neon-input" FormatString="0"
+                                 IsVisible="{Binding ShowPollIntervalEditor}"/>
+
+                  <TextBlock Grid.Row="6" Text="启用" Classes="field-label" VerticalAlignment="Center"/>
+                  <ToggleSwitch Grid.Row="6" Grid.Column="1" IsChecked="{Binding EditIsActive}"
+                                OnContent="启用" OffContent="停用"/>
+                </Grid>
+
+                <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
+                           Text="关闭「数据采集」后，该设备将不再按周期采集上报；仍可在调试/定义页手动读写。"/>
+
+                <!-- TCP -->
+                <Border Classes="glass-panel" Padding="12" IsVisible="{Binding ShowTcpFields}">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="TCP 连接" Classes="secondary-text" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto" RowSpacing="10" ColumnSpacing="12">
+                      <TextBlock Text="IP 地址" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Column="1" Text="{Binding EditIp}" Classes="neon-input" PlaceholderText="127.0.0.1"/>
+                      <TextBlock Grid.Row="1" Text="端口" Classes="field-label" VerticalAlignment="Center"/>
+                      <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding EditPort}"
+                                     Minimum="1" Maximum="65535" Classes="neon-input" FormatString="0"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <!-- Serial -->
+                <Border Classes="glass-panel" Padding="12" IsVisible="{Binding ShowSerialFields}">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="串口参数" Classes="secondary-text" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="120,*,120,*" RowDefinitions="Auto,Auto,Auto"
+                          RowSpacing="10" ColumnSpacing="12">
+                      <TextBlock Text="串口名" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Column="1" Text="{Binding EditPortName}" Classes="neon-input" PlaceholderText="COM1"/>
+                      <TextBlock Grid.Column="2" Text="波特率" Classes="field-label" VerticalAlignment="Center"/>
+                      <NumericUpDown Grid.Column="3" Value="{Binding EditBaudRate}"
+                                     Classes="neon-input" FormatString="0"/>
+
+                      <TextBlock Grid.Row="1" Text="数据位" Classes="field-label" VerticalAlignment="Center"/>
+                      <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding EditDataBits}"
+                                     Minimum="5" Maximum="8" Classes="neon-input" FormatString="0"/>
+                      <TextBlock Grid.Row="1" Grid.Column="2" Text="停止位" Classes="field-label" VerticalAlignment="Center"/>
+                      <NumericUpDown Grid.Row="1" Grid.Column="3" Value="{Binding EditStopBits}"
+                                     Minimum="0" Maximum="2" Classes="neon-input" FormatString="0"/>
+
+                      <TextBlock Grid.Row="2" Text="校验位" Classes="field-label" VerticalAlignment="Center"/>
+                      <NumericUpDown Grid.Row="2" Grid.Column="1" Value="{Binding EditParity}"
+                                     Minimum="0" Maximum="4" Classes="neon-input" FormatString="0"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <!-- PLC -->
+                <Border Classes="glass-panel" Padding="12" IsVisible="{Binding ShowPlcFields}">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="PLC 型号" Classes="secondary-text" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="120,*" ColumnSpacing="12">
+                      <TextBlock Text="版本/型号" Classes="field-label" VerticalAlignment="Center"/>
+                      <ComboBox Grid.Column="1"
+                                ItemsSource="{Binding PlcVersionOptions}"
+                                SelectedItem="{Binding EditPlcVersion}"
+                                HorizontalAlignment="Stretch"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <!-- HTTP -->
+                <Border Classes="glass-panel" Padding="12" IsVisible="{Binding ShowHttpFields}">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="HttpClient 配置" Classes="secondary-text" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                          RowSpacing="8" ColumnSpacing="12">
+                      <TextBlock Text="登录 URL" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Column="1" Text="{Binding HcLoginUrl}" Classes="neon-input"/>
+
+                      <TextBlock Grid.Row="1" Text="登录方法" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding HcLoginMethod}" Classes="neon-input" PlaceholderText="POST"/>
+
+                      <TextBlock Grid.Row="2" Text="登录 Body" Classes="field-label" VerticalAlignment="Top"/>
+                      <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding HcLoginBody}" Classes="neon-input"
+                               AcceptsReturn="True" Height="64" TextWrapping="Wrap"/>
+
+                      <TextBlock Grid.Row="3" Text="Token 路径" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding HcTokenPath}" Classes="neon-input"
+                               PlaceholderText="data.token"/>
+
+                      <TextBlock Grid.Row="4" Text="查询 URL" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding HcQueryUrl}" Classes="neon-input"/>
+
+                      <TextBlock Grid.Row="5" Text="查询方法" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding HcQueryMethod}" Classes="neon-input" PlaceholderText="GET"/>
+
+                      <TextBlock Grid.Row="6" Text="查询 Body" Classes="field-label" VerticalAlignment="Top"/>
+                      <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding HcQueryBody}" Classes="neon-input"
+                               AcceptsReturn="True" Height="64" TextWrapping="Wrap"/>
+
+                      <TextBlock Grid.Row="7" Text="查询头 Keys" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding HcQueryHeaderKeys}" Classes="neon-input"
+                               PlaceholderText="Authorization,X-Token（逗号分隔）"/>
+
+                      <TextBlock Grid.Row="8" Text="Body 路径" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding HcBodyPath}" Classes="neon-input"
+                               PlaceholderText="data"/>
+
+                      <TextBlock Grid.Row="9" Text="嵌套明细路径" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="9" Grid.Column="1" Text="{Binding HcNestedPath}" Classes="neon-input"
+                               PlaceholderText="dataItem.registerItem"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,4,0,0">
+                  <Button Classes="cta-button" Content="保存设备"
+                          Command="{Binding SaveDeviceCommand}"
+                          IsEnabled="{Binding !IsBusy}"/>
+                  <Button Classes="ghost-button" Content="取消"
+                          Command="{Binding CancelEditCommand}"/>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="24"
+                  IsVisible="{Binding !IsEditingDevice}">
+            <StackPanel Spacing="8" VerticalAlignment="Center" HorizontalAlignment="Center">
+              <TextBlock Text="选择左侧设备并点击「编辑」，或「新建」设备"
+                         Classes="muted-text" TextAlignment="Center"/>
+              <TextBlock Text="支持 Modbus / Siemens / Mitsubishi / Omron / HttpClient"
+                         Classes="muted-text" FontSize="12" TextAlignment="Center"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- 物模型 -->
+      <TabItem Header="物模型">
+        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+          <Border Classes="glass-panel" Padding="14">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Spacing="10">
+                <TextBlock Text="选择设备" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+                <ComboBox ItemsSource="{Binding DevicePicker}"
+                          SelectedValue="{Binding SelectedVariableDeviceId}"
+                          SelectedValueBinding="{Binding Id}"
+                          HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DevicePickerItem">
+                      <TextBlock Text="{Binding DisplayName}"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="ghost-button" Content="刷新"
+                          Command="{Binding RefreshVariablesCommand}"/>
+                  <Button Classes="cta-button" Content="新建"
+                          Command="{Binding NewVariableCommand}"/>
+                  <Button Classes="ghost-button" Content="编辑"
+                          Command="{Binding EditVariableCommand}"/>
+                  <Button Classes="ghost-button" Content="删除"
+                          Command="{Binding DeleteVariableCommand}"/>
+                </StackPanel>
+              </StackPanel>
+
+              <ListBox Classes="entity-list" Margin="0,12,0,0"
+                       ItemsSource="{Binding Variables}"
+                       SelectedItem="{Binding SelectedVariable}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:VariableListItem">
+                    <Border Classes="list-item-card">
+                      <StackPanel Spacing="6">
+                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
+                          <Border Classes="list-item-index">
+                            <TextBlock Classes="accent-text" FontWeight="Bold" FontSize="13"
+                                       HorizontalAlignment="Center"
+                                       Text="{Binding Id, StringFormat='#{0}'}"/>
+                          </Border>
+                          <TextBlock Grid.Column="1" Text="{Binding Alias}" Classes="primary-text"
+                                     FontWeight="SemiBold" VerticalAlignment="Center"
+                                     TextTrimming="CharacterEllipsis"/>
+                          <Border Grid.Column="2" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center"
+                                  IsVisible="{Binding ShowOnDefinedPage}">
+                            <TextBlock Classes="accent-text" FontSize="11"
+                                       Text="{Binding DefinedPageModeText, StringFormat='自定义·{0}'}"/>
+                          </Border>
+                          <Border Grid.Column="3" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding DataTypeName}" Classes="accent-text" FontSize="11"/>
+                          </Border>
+                        </Grid>
+                        <TextBlock Classes="muted-text" FontSize="12">
+                          <Run Text="{Binding Address}"/><Run Text=" · "/><Run Text="{Binding ReadWriteName}"/>
+                        </TextBlock>
+                        <TextBlock Text="{Binding Description}" Classes="muted-text" FontSize="11"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <Border Classes="list-item-divider"/>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </DockPanel>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="16"
+                  IsVisible="{Binding IsEditingVariable}">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+              <StackPanel Spacing="12">
+                <TextBlock Text="物模型编辑" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+                <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                      RowSpacing="10" ColumnSpacing="12">
+                  <TextBlock Text="地址" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" Text="{Binding VarAddress}" Classes="neon-input"
+                           PlaceholderText="如 40001 / DB1.DBD0"/>
+
+                  <TextBlock Grid.Row="1" Text="数据类型" Classes="field-label" VerticalAlignment="Center"/>
+                  <ComboBox Grid.Row="1" Grid.Column="1"
+                            ItemsSource="{Binding DataTypeOptions}"
+                            SelectedIndex="{Binding VarDataType}"
+                            HorizontalAlignment="Stretch"/>
+
+                  <TextBlock Grid.Row="2" Text="别名" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding VarAlias}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="3" Text="描述" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding VarDescription}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="4" Text="读写权限" Classes="field-label" VerticalAlignment="Center"/>
+                  <ComboBox Grid.Row="4" Grid.Column="1"
+                            ItemsSource="{Binding ReadWriteOptions}"
+                            SelectedIndex="{Binding VarReadWrite}"
+                            HorizontalAlignment="Stretch"/>
+
+                  <TextBlock Grid.Row="5" Text="进入自定义页" Classes="field-label" VerticalAlignment="Center"/>
+                  <ToggleSwitch Grid.Row="5" Grid.Column="1" IsChecked="{Binding VarShowOnDefinedPage}"
+                                OnContent="开" OffContent="关"/>
+
+                  <TextBlock Grid.Row="6" Text="自定义页操作" Classes="field-label" VerticalAlignment="Center"
+                             IsVisible="{Binding ShowDefinedPageOptions}"/>
+                  <ComboBox Grid.Row="6" Grid.Column="1"
+                            ItemsSource="{Binding DefinedPageOperationOptions}"
+                            SelectedIndex="{Binding VarDefinedPageOperation}"
+                            HorizontalAlignment="Stretch"
+                            IsVisible="{Binding ShowDefinedPageOptions}"/>
+
+                  <TextBlock Grid.Row="7" Text="默认写入值" Classes="field-label" VerticalAlignment="Center"
+                             IsVisible="{Binding ShowDefinedPageWriteValue}"/>
+                  <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding VarDefinedPageWriteValue}"
+                           Classes="neon-input"
+                           PlaceholderText="如 true / 1 / 100"
+                           IsVisible="{Binding ShowDefinedPageWriteValue}"/>
+                </Grid>
+
+                <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
+                           Text="开启「进入自定义页」后，请选择读取或写入；写入时需填写默认写入值，点击定义页按钮将按该值写入。"/>
+
+                <Border Classes="glass-panel" Padding="12" IsVisible="{Binding ShowHttpVariableFields}">
+                  <StackPanel Spacing="10">
+                    <TextBlock Text="HTTP 物模型路径" Classes="secondary-text" FontWeight="SemiBold"/>
+                    <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto" RowSpacing="8" ColumnSpacing="12">
+                      <TextBlock Text="Key JSON 路径" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Column="1" Text="{Binding VarHttpKeyPath}" Classes="neon-input"
+                               PlaceholderText="body.name"/>
+                      <TextBlock Grid.Row="1" Text="Value JSON 路径" Classes="field-label" VerticalAlignment="Center"/>
+                      <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding VarHttpValuePath}" Classes="neon-input"
+                               PlaceholderText="body.value"/>
+                    </Grid>
+                  </StackPanel>
+                </Border>
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button Classes="cta-button" Content="保存变量"
+                          Command="{Binding SaveVariableCommand}"
+                          IsEnabled="{Binding !IsBusy}"/>
+                  <Button Classes="ghost-button" Content="取消"
+                          Command="{Binding CancelVariableEditCommand}"/>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="24"
+                  IsVisible="{Binding !IsEditingVariable}">
+            <TextBlock Text="选择设备后管理物模型变量；点击「新建」或「编辑」打开表单"
+                       Classes="muted-text" TextAlignment="Center"
+                       VerticalAlignment="Center" HorizontalAlignment="Center"/>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- MQTT -->
+      <TabItem Header="MQTT配置">
+        <Grid ColumnDefinitions="1.5*,2*,1.5*" Margin="4,8,4,4">
+          <ScrollViewer Grid.Column="1"
+                        HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto">
+            <Border Classes="glass-panel" Padding="20" HorizontalAlignment="Stretch">
+              <StackPanel Spacing="14">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="MQTT 配置" Classes="primary-text" FontWeight="SemiBold" FontSize="18"/>
+                  <TextBlock Text="关闭后 MQTT 客户端不参与设备采集与上报" Classes="muted-text" FontSize="12"/>
+                </StackPanel>
+
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="启用 MQTT" Classes="secondary-text" FontWeight="SemiBold"/>
+                    <TextBlock Text="开启后连接 Broker 并采集上报；关闭后立即断开" Classes="muted-text" FontSize="12"/>
+                  </StackPanel>
+                  <ToggleSwitch Grid.Column="1" IsChecked="{Binding MqttIsEnabled}"
+                                OnContent="开" OffContent="关" VerticalAlignment="Center"/>
+                </Grid>
+
+                <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                      RowSpacing="10" ColumnSpacing="12">
+                  <TextBlock Text="Broker IP" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" Text="{Binding MqttBrokerIp}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="1" Text="端口" Classes="field-label" VerticalAlignment="Center"/>
+                  <NumericUpDown Grid.Row="1" Grid.Column="1" Value="{Binding MqttPort}"
+                                 Minimum="1" Maximum="65535" Classes="neon-input" FormatString="0"/>
+
+                  <TextBlock Grid.Row="2" Text="ClientId" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding MqttClientId}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="3" Text="用户名" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding MqttUsername}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="4" Text="密码" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="4" Grid.Column="1" Text="{Binding MqttPassword}" Classes="neon-input"
+                           PasswordChar="●"/>
+
+                  <TextBlock Grid.Row="5" Text="发布主题" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding MqttPubTopic}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="6" Text="订阅主题" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding MqttSubTopic}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="7" Text="在线状态主题" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding MqttOnlineStatusTopic}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="8" Text="状态上报间隔(ms)" Classes="field-label" VerticalAlignment="Center"/>
+                  <NumericUpDown Grid.Row="8" Grid.Column="1" Value="{Binding MqttOnlineStatusReportInterval}"
+                                 Minimum="1000" Classes="neon-input" FormatString="0"/>
+                </Grid>
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button Classes="ghost-button" Content="重新加载"
+                          Command="{Binding LoadMqttCommand}"/>
+                  <Button Classes="cta-button" Content="保存 MQTT"
+                          Command="{Binding SaveMqttCommand}"
+                          IsEnabled="{Binding !IsBusy}"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+          </ScrollViewer>
+        </Grid>
+      </TabItem>
+
+      <!-- 调试 -->
+      <TabItem Header="设备调试">
+        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+          <Border Classes="glass-panel" Padding="16">
+            <StackPanel Spacing="12">
+              <TextBlock Text="设备调试" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+
+              <StackPanel Spacing="6">
+                <TextBlock Text="目标设备" Classes="field-label"/>
+                <ComboBox ItemsSource="{Binding DevicePicker}"
+                          SelectedValue="{Binding DebugDeviceId}"
+                          SelectedValueBinding="{Binding Id}"
+                          HorizontalAlignment="Stretch">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DevicePickerItem">
+                      <TextBlock Text="{Binding DisplayName}"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Text="物模型属性" Classes="field-label"/>
+                <ComboBox ItemsSource="{Binding DebugVariables}"
+                          SelectedItem="{Binding SelectedDebugVariable}"
+                          HorizontalAlignment="Stretch"
+                          PlaceholderText="选择物模型点位…">
+                  <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:DebugVariableItem">
+                      <TextBlock Text="{Binding DisplayName}"/>
+                    </DataTemplate>
+                  </ComboBox.ItemTemplate>
+                </ComboBox>
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Text="地址" Classes="field-label"/>
+                <TextBox Text="{Binding DebugAddress}" Classes="neon-input" IsReadOnly="True"
+                         PlaceholderText="由物模型自动带入"/>
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Text="数据类型" Classes="field-label"/>
+                <ComboBox ItemsSource="{Binding DataTypeOptions}"
+                          SelectedIndex="{Binding DebugDataType}"
+                          IsEnabled="False"
+                          HorizontalAlignment="Stretch"/>
+              </StackPanel>
+
+              <StackPanel Spacing="6">
+                <TextBlock Text="写入值" Classes="field-label"/>
+                <TextBox Text="{Binding DebugWriteValue}" Classes="neon-input" PlaceholderText="仅写入时需要"/>
+              </StackPanel>
+
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="cta-button" Content="读取"
+                        Command="{Binding DebugReadCommand}"
+                        IsEnabled="{Binding !IsBusy}"/>
+                <Button Classes="ghost-button" Content="写入"
+                        Command="{Binding DebugWriteCommand}"
+                        IsEnabled="{Binding !IsBusy}"/>
+                <Button Classes="ghost-button" Content="读取全部"
+                        Command="{Binding DebugReadAllCommand}"
+                        IsEnabled="{Binding !IsBusy}"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="16">
+            <DockPanel>
+              <TextBlock DockPanel.Dock="Top" Text="调试输出" Classes="primary-text"
+                         FontWeight="SemiBold" FontSize="16" Margin="0,0,0,10"/>
+              <TextBox Text="{Binding DebugOutput}" Classes="neon-input"
+                       IsReadOnly="True" AcceptsReturn="True" TextWrapping="Wrap"
+                       VerticalContentAlignment="Top"/>
+            </DockPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- 备份 -->
+      <TabItem Header="备份恢复">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="4,8,4,4">
+          <Border Classes="glass-panel" Padding="16">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,10">
+                <TextBlock Text="导出备份" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+                <TextBlock Text="导出设备、物模型与可选 MQTT 配置为 JSON"
+                           Classes="muted-text" FontSize="12"/>
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <ToggleSwitch IsChecked="{Binding IncludeMqtt}" OnContent="含 MQTT" OffContent="不含 MQTT"/>
+                  <Button Classes="cta-button" Content="导出"
+                          Command="{Binding ExportCommand}"
+                          IsEnabled="{Binding !IsBusy}"/>
+                </StackPanel>
+              </StackPanel>
+              <TextBox Text="{Binding ExportJson}" Classes="neon-input"
+                       AcceptsReturn="True" TextWrapping="Wrap" IsReadOnly="True"
+                       VerticalContentAlignment="Top"/>
+            </DockPanel>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="16">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Spacing="10" Margin="0,0,0,10">
+                <TextBlock Text="导入备份" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+                <TextBlock Text="merge 合并更新；replaceAll 清空后全量导入"
+                           Classes="muted-text" FontSize="12"/>
+                <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                  <ComboBox ItemsSource="{Binding ImportModeOptions}"
+                            SelectedItem="{Binding ImportMode}"
+                            HorizontalAlignment="Stretch"/>
+                  <Button Grid.Column="1" Classes="cta-button" Content="导入"
+                          Command="{Binding ImportCommand}"
+                          IsEnabled="{Binding !IsBusy}"/>
+                </Grid>
+              </StackPanel>
+              <TextBox Text="{Binding ImportJson}" Classes="neon-input"
+                       AcceptsReturn="True" TextWrapping="Wrap"
+                       PlaceholderText="粘贴备份 JSON…"
+                       VerticalContentAlignment="Top"/>
+            </DockPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</UserControl>

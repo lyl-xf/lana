@@ -1,0 +1,481 @@
+using System.Text.Json;
+using Lana.Data.Sqlite;
+using Lana.Gateway.Data;
+using Lana.Gateway.Models;
+using Lana.Gateway.Protocol;
+
+namespace Lana.Gateway.Services;
+
+/// <summary>
+/// 网关设备 / 变量 / MQTT / 调试 / 备份的高层 API（供 UI 调用）。
+/// </summary>
+public sealed class GatewayDeviceService
+{
+    private static readonly JsonSerializerOptions BackupJsonOptions = new()
+    {
+        WriteIndented = true,
+        PropertyNameCaseInsensitive = true,
+    };
+
+    private readonly DeviceMapper _devices;
+    private readonly DeviceVariableMapper _variables;
+    private readonly MqttConfigMapper _mqtt;
+    private readonly ProtocolSessionFactory _protocolSessions;
+
+    public GatewayDeviceService(ISqliteSessionFactory sessionFactory)
+        : this(sessionFactory, new ProtocolSessionFactory())
+    {
+    }
+
+    public GatewayDeviceService(ISqliteSessionFactory sessionFactory, ProtocolSessionFactory protocolSessionFactory)
+    {
+        _devices = new DeviceMapper(sessionFactory);
+        _variables = new DeviceVariableMapper(sessionFactory);
+        _mqtt = new MqttConfigMapper(sessionFactory);
+        _protocolSessions = protocolSessionFactory;
+    }
+
+    public async Task<IReadOnlyList<Device>> ListDevicesAsync(string? name = null)
+        => await _devices.GetAllAsync(name);
+
+    public async Task<Device?> GetDeviceAsync(long id)
+    {
+        var device = await _devices.GetByIdAsync(id);
+        if (device is null)
+            return null;
+
+        device.Variables = (await _variables.GetByDeviceAsync(id)).ToList();
+        return device;
+    }
+
+    public async Task CreateDeviceAsync(Device device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+        ValidateProtocol(device.ProtocolType);
+
+        if (device.Id <= 0)
+            throw new ArgumentException("设备 Id 必须为正整数。", nameof(device));
+
+        if (await _devices.ExistsAsync(device.Id))
+            throw new InvalidOperationException($"设备 Id {device.Id} 已存在。");
+
+        NormalizeDevice(device);
+        await _devices.InsertAsync(device);
+    }
+
+    public async Task UpdateDeviceAsync(long oldId, Device device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+        ValidateProtocol(device.ProtocolType);
+
+        if (device.Id <= 0)
+            throw new ArgumentException("设备 Id 必须为正整数。", nameof(device));
+
+        if (!await _devices.ExistsAsync(oldId))
+            throw new InvalidOperationException($"设备 Id {oldId} 不存在。");
+
+        NormalizeDevice(device);
+
+        if (oldId == device.Id)
+        {
+            await _devices.UpdateAsync(device);
+            return;
+        }
+
+        await _devices.UpdateDeviceIdMigrateAsync(oldId, device);
+    }
+
+    public Task DeleteDeviceAsync(long id)
+        => _devices.DeleteAsync(id);
+
+    public Task<IReadOnlyList<DeviceVariable>> ListVariablesAsync(long deviceId)
+        => _variables.GetByDeviceAsync(deviceId);
+
+    public async Task<long> CreateVariableAsync(DeviceVariable variable)
+    {
+        ArgumentNullException.ThrowIfNull(variable);
+
+        if (!await _devices.ExistsAsync(variable.DeviceId))
+            throw new InvalidOperationException($"设备 Id {variable.DeviceId} 不存在。");
+
+        NormalizeVariable(variable);
+        var id = await _variables.InsertAsync(variable);
+        variable.Id = id;
+        return id;
+    }
+
+    public async Task UpdateVariableAsync(DeviceVariable variable)
+    {
+        ArgumentNullException.ThrowIfNull(variable);
+
+        if (variable.Id <= 0)
+            throw new ArgumentException("变量 Id 无效。", nameof(variable));
+
+        if (!await _devices.ExistsAsync(variable.DeviceId))
+            throw new InvalidOperationException($"设备 Id {variable.DeviceId} 不存在。");
+
+        NormalizeVariable(variable);
+        var affected = await _variables.UpdateAsync(variable);
+        if (affected == 0)
+            throw new InvalidOperationException($"变量 Id {variable.Id} 不存在。");
+    }
+
+    public Task DeleteVariableAsync(long id)
+        => _variables.DeleteAsync(id);
+
+    public Task<MqttConfig?> GetMqttAsync()
+        => _mqtt.GetAsync();
+
+    public Task SaveMqttAsync(MqttConfig config)
+    {
+        ArgumentNullException.ThrowIfNull(config);
+        NormalizeMqtt(config);
+        return _mqtt.UpsertAsync(config);
+    }
+
+    public async Task<DebugReadResult> DebugReadAsync(long deviceId, string address, DataType dataType)
+    {
+        var device = await GetDeviceAsync(deviceId);
+        if (device is null)
+            return new DebugReadResult { Success = false, Error = $"设备 Id {deviceId} 不存在。" };
+
+        if (string.IsNullOrWhiteSpace(address))
+            return new DebugReadResult { Success = false, Error = "地址不能为空。" };
+
+        using var session = _protocolSessions.CreateSession(device);
+        var open = session.Open();
+        if (!open.Success)
+            return new DebugReadResult { Success = false, Error = open.Error };
+
+        try
+        {
+            var result = session.Read(address, ToProtocolDataType(dataType));
+            return new DebugReadResult
+            {
+                Success = result.Success,
+                Error = result.Error,
+                Value = result.Value,
+            };
+        }
+        finally
+        {
+            try { session.Close(); } catch { /* ignore */ }
+        }
+    }
+
+    public async Task<DebugWriteResult> DebugWriteAsync(long deviceId, string address, DataType dataType, string? value)
+    {
+        var device = await GetDeviceAsync(deviceId);
+        if (device is null)
+            return new DebugWriteResult { Success = false, Error = $"设备 Id {deviceId} 不存在。" };
+
+        if (string.IsNullOrWhiteSpace(address))
+            return new DebugWriteResult { Success = false, Error = "地址不能为空。" };
+
+        using var session = _protocolSessions.CreateSession(device);
+        var open = session.Open();
+        if (!open.Success)
+            return new DebugWriteResult { Success = false, Error = open.Error };
+
+        try
+        {
+            var result = session.Write(address, ToProtocolDataType(dataType), value);
+            return new DebugWriteResult
+            {
+                Success = result.Success,
+                Error = result.Error,
+            };
+        }
+        finally
+        {
+            try { session.Close(); } catch { /* ignore */ }
+        }
+    }
+
+    public async Task<DebugReadAllResult> DebugReadAllAsync(long deviceId)
+    {
+        var device = await GetDeviceAsync(deviceId);
+        if (device is null)
+            return new DebugReadAllResult { Success = false, Error = $"设备 Id {deviceId} 不存在。" };
+
+        using var session = _protocolSessions.CreateSession(device);
+        var open = session.Open();
+        if (!open.Success)
+            return new DebugReadAllResult { Success = false, Error = open.Error };
+
+        var result = new DebugReadAllResult { Success = true };
+        try
+        {
+            foreach (var variable in device.Variables)
+            {
+                if (variable.ReadWrite == ReadWriteAccess.WriteOnly)
+                    continue;
+
+                var item = new DebugReadAllItem
+                {
+                    VariableId = variable.Id,
+                    Alias = variable.Alias,
+                    Address = variable.Address,
+                    DataType = variable.DataType,
+                };
+
+                try
+                {
+                    var read = session.Read(variable.Address, ToProtocolDataType(variable.DataType));
+                    item.Success = read.Success;
+                    item.Error = read.Error;
+                    item.Value = read.Value;
+                }
+                catch (Exception ex)
+                {
+                    item.Success = false;
+                    item.Error = ex.Message;
+                }
+
+                result.Items.Add(item);
+            }
+        }
+        finally
+        {
+            try { session.Close(); } catch { /* ignore */ }
+        }
+
+        return result;
+    }
+
+    public async Task<string> ExportBackupAsync(bool includeMqtt = true)
+    {
+        var devices = await _devices.GetAllAsync();
+        var backup = new GatewayBackupDto
+        {
+            SchemaVersion = 2,
+            ExportedAtUtc = DateTime.UtcNow,
+        };
+
+        foreach (var device in devices)
+        {
+            var vars = await _variables.GetByDeviceAsync(device.Id);
+            backup.Devices.Add(ToDeviceBackup(device, vars));
+        }
+
+        if (includeMqtt)
+        {
+            var mqtt = await _mqtt.GetAsync();
+            if (mqtt is not null)
+                backup.Mqtt = ToMqttBackup(mqtt);
+        }
+
+        return JsonSerializer.Serialize(backup, BackupJsonOptions);
+    }
+
+    public async Task ImportBackupAsync(string json, string mode = "merge", bool includeMqtt = true)
+    {
+        if (string.IsNullOrWhiteSpace(json))
+            throw new ArgumentException("备份 JSON 不能为空。", nameof(json));
+
+        var normalizedMode = (mode ?? "merge").Trim();
+        if (!normalizedMode.Equals("merge", StringComparison.OrdinalIgnoreCase)
+            && !normalizedMode.Equals("replaceAll", StringComparison.OrdinalIgnoreCase))
+        {
+            throw new ArgumentException("mode 必须是 merge 或 replaceAll。", nameof(mode));
+        }
+
+        GatewayBackupDto? backup;
+        try
+        {
+            backup = JsonSerializer.Deserialize<GatewayBackupDto>(json, BackupJsonOptions);
+        }
+        catch (JsonException ex)
+        {
+            throw new ArgumentException("备份 JSON 解析失败：" + ex.Message, nameof(json), ex);
+        }
+
+        if (backup is null)
+            throw new ArgumentException("备份 JSON 无效。", nameof(json));
+
+        var replaceAll = normalizedMode.Equals("replaceAll", StringComparison.OrdinalIgnoreCase);
+
+        if (replaceAll)
+            await _devices.DeleteAllAsync();
+
+        foreach (var dto in backup.Devices)
+        {
+            ValidateProtocol(dto.ProtocolType);
+            var device = FromDeviceBackup(dto);
+            NormalizeDevice(device);
+
+            if (replaceAll)
+            {
+                await _devices.InsertAsync(device);
+            }
+            else if (await _devices.ExistsAsync(device.Id))
+            {
+                await _devices.UpdateAsync(device);
+                await _variables.DeleteByDeviceAsync(device.Id);
+            }
+            else
+            {
+                await _devices.InsertAsync(device);
+            }
+
+            foreach (var varDto in dto.Variables)
+            {
+                var variable = FromVariableBackup(varDto, device.Id);
+                NormalizeVariable(variable);
+                await _variables.InsertAsync(variable);
+            }
+        }
+
+        if (includeMqtt && backup.Mqtt is not null)
+        {
+            var mqtt = FromMqttBackup(backup.Mqtt);
+            NormalizeMqtt(mqtt);
+            await _mqtt.UpsertAsync(mqtt);
+        }
+    }
+
+    private static void ValidateProtocol(ProtocolType protocolType)
+    {
+        var value = (int)protocolType;
+        // Custom 已移除；仅允许 0–6。
+        if (value < 0 || value > 6)
+            throw new ArgumentException($"不支持的协议类型：{protocolType}（仅允许 0–6）。");
+    }
+
+    private static void NormalizeDevice(Device device)
+    {
+        device.Name ??= string.Empty;
+        device.Ip ??= string.Empty;
+        device.PortName ??= string.Empty;
+        device.PlcVersion ??= string.Empty;
+        device.PluginConfigJson ??= string.Empty;
+        if (device.PollInterval < 0)
+            device.PollInterval = 0;
+
+        if (device.ProtocolType == ProtocolType.SiemensClient)
+            device.PlcVersion = IoTClientFactory.NormalizeSiemensVersion(device.PlcVersion);
+    }
+
+    private static void NormalizeVariable(DeviceVariable variable)
+    {
+        variable.Address ??= string.Empty;
+        variable.Alias ??= string.Empty;
+        variable.Description ??= string.Empty;
+        variable.HttpKeyJsonPath ??= string.Empty;
+        variable.HttpValueJsonPath ??= string.Empty;
+    }
+
+    private static void NormalizeMqtt(MqttConfig config)
+    {
+        config.BrokerIp ??= string.Empty;
+        config.ClientId ??= string.Empty;
+        config.Username ??= string.Empty;
+        config.Password ??= string.Empty;
+        config.PubTopic ??= string.Empty;
+        config.SubTopic ??= string.Empty;
+        config.OnlineStatusTopic ??= string.Empty;
+        if (config.Port <= 0)
+            config.Port = 1883;
+        if (config.OnlineStatusReportInterval <= 0)
+            config.OnlineStatusReportInterval = 30000;
+    }
+
+    private static ProtocolDataType ToProtocolDataType(DataType dataType)
+        => (ProtocolDataType)(int)dataType;
+
+    private static DeviceBackupDto ToDeviceBackup(Device device, IReadOnlyList<DeviceVariable> variables) => new()
+    {
+        Id = device.Id,
+        Name = device.Name,
+        Ip = device.Ip,
+        Port = device.Port,
+        ProtocolType = device.ProtocolType,
+        PortName = device.PortName,
+        BaudRate = device.BaudRate,
+        DataBits = device.DataBits,
+        StopBits = device.StopBits,
+        Parity = device.Parity,
+        PlcVersion = device.PlcVersion,
+        PluginConfigJson = device.PluginConfigJson,
+        SortOrder = device.SortOrder,
+        PollInterval = device.PollInterval,
+        IsActive = device.IsActive,
+        Variables = variables.Select(v => new DeviceVariableBackupDto
+        {
+            Id = v.Id,
+            DeviceId = v.DeviceId,
+            Address = v.Address,
+            DataType = v.DataType,
+            Alias = v.Alias,
+            Description = v.Description,
+            ReadWrite = v.ReadWrite,
+            HttpKeyJsonPath = v.HttpKeyJsonPath,
+            HttpValueJsonPath = v.HttpValueJsonPath,
+            ShowOnDefinedPage = v.ShowOnDefinedPage,
+            DefinedPageOperation = v.DefinedPageOperation,
+            DefinedPageWriteValue = v.DefinedPageWriteValue,
+        }).ToList(),
+    };
+
+    private static Device FromDeviceBackup(DeviceBackupDto dto) => new()
+    {
+        Id = dto.Id,
+        Name = dto.Name,
+        Ip = dto.Ip,
+        Port = dto.Port,
+        ProtocolType = dto.ProtocolType,
+        PortName = dto.PortName,
+        BaudRate = dto.BaudRate,
+        DataBits = dto.DataBits,
+        StopBits = dto.StopBits,
+        Parity = dto.Parity,
+        PlcVersion = dto.PlcVersion,
+        PluginConfigJson = dto.PluginConfigJson,
+        SortOrder = dto.SortOrder,
+        PollInterval = dto.PollInterval,
+        IsActive = dto.IsActive,
+    };
+
+    private static DeviceVariable FromVariableBackup(DeviceVariableBackupDto dto, long deviceId) => new()
+    {
+        DeviceId = deviceId,
+        Address = dto.Address,
+        DataType = dto.DataType,
+        Alias = dto.Alias,
+        Description = dto.Description,
+        ReadWrite = dto.ReadWrite,
+        HttpKeyJsonPath = dto.HttpKeyJsonPath,
+        HttpValueJsonPath = dto.HttpValueJsonPath,
+        ShowOnDefinedPage = dto.ShowOnDefinedPage,
+        DefinedPageOperation = dto.DefinedPageOperation,
+        DefinedPageWriteValue = dto.DefinedPageWriteValue ?? string.Empty,
+    };
+
+    private static MqttBackupDto ToMqttBackup(MqttConfig mqtt) => new()
+    {
+        IsEnabled = mqtt.IsEnabled,
+        BrokerIp = mqtt.BrokerIp,
+        Port = mqtt.Port,
+        ClientId = mqtt.ClientId,
+        Username = mqtt.Username,
+        Password = mqtt.Password,
+        PubTopic = mqtt.PubTopic,
+        SubTopic = mqtt.SubTopic,
+        OnlineStatusTopic = mqtt.OnlineStatusTopic,
+        OnlineStatusReportInterval = mqtt.OnlineStatusReportInterval,
+    };
+
+    private static MqttConfig FromMqttBackup(MqttBackupDto dto) => new()
+    {
+        IsEnabled = dto.IsEnabled,
+        BrokerIp = dto.BrokerIp,
+        Port = dto.Port,
+        ClientId = dto.ClientId,
+        Username = dto.Username,
+        Password = dto.Password,
+        PubTopic = dto.PubTopic,
+        SubTopic = dto.SubTopic,
+        OnlineStatusTopic = dto.OnlineStatusTopic,
+        OnlineStatusReportInterval = dto.OnlineStatusReportInterval,
+    };
+}

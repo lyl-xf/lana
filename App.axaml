@@ -250,5 +250,86 @@
       <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}"/>
       <Setter Property="FontSize" Value="13"/>
     </Style>
+
+    <Style Selector="ListBox.entity-list">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style Selector="ListBox.entity-list ListBoxItem">
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+      <Setter Property="HorizontalContentAlignment" Value="Stretch"/>
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
+    <Style Selector="ListBox.entity-list ListBoxItem:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppNavHoverBrush}"/>
+      <Setter Property="CornerRadius" Value="12"/>
+    </Style>
+
+    <Style Selector="ListBox.entity-list ListBoxItem:selected /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppListItemSelectedBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="1.5"/>
+      <Setter Property="CornerRadius" Value="12"/>
+    </Style>
+
+    <Style Selector="ListBox.entity-list ListBoxItem:selected:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppListItemSelectedBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="1.5"/>
+      <Setter Property="CornerRadius" Value="12"/>
+    </Style>
+
+    <Style Selector="ListBox.entity-list ListBoxItem:selected Border.list-item-card">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderBrush" Value="Transparent"/>
+    </Style>
+
+    <Style Selector="ListBox.entity-list ListBoxItem:pointerover Border.list-item-card">
+      <Setter Property="Background" Value="Transparent"/>
+    </Style>
+
+    <Style Selector="Border.list-item-card">
+      <Setter Property="Background" Value="{DynamicResource AppListItemBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppListItemBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="12"/>
+      <Setter Property="Padding" Value="10,10"/>
+    </Style>
+
+    <Style Selector="Border.list-item-index">
+      <Setter Property="Background" Value="{DynamicResource AppListIndexBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppListItemBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="8,4"/>
+      <Setter Property="MinWidth" Value="40"/>
+      <Setter Property="HorizontalAlignment" Value="Left"/>
+      <Setter Property="VerticalAlignment" Value="Top"/>
+    </Style>
+
+    <Style Selector="Border.list-item-divider">
+      <Setter Property="Height" Value="1"/>
+      <Setter Property="Margin" Value="0,8,0,0"/>
+      <Setter Property="Background" Value="{DynamicResource AppListDividerBrush}"/>
+    </Style>
+
+    <Style Selector="Border.preview-pick-card">
+      <Setter Property="Background" Value="{DynamicResource AppListItemBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppListItemBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="12"/>
+      <Setter Property="Padding" Value="10,10"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="Margin" Value="0,0,0,8"/>
+    </Style>
+
+    <Style Selector="Border.preview-pick-card.preview-picked">
+      <Setter Property="Background" Value="{DynamicResource AppListItemSelectedBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="1.5"/>
+    </Style>
   </Application.Styles>
 </Application>

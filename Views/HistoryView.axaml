@@ -1,0 +1,71 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lana.ViewModels"
+             x:Class="Lana.Views.HistoryView"
+             x:DataType="vm:HistoryViewModel">
+
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Classes="glass-panel" Padding="12,8" Margin="0,10,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding StatusMessage}" Classes="accent-text" FontSize="13"
+                   TextWrapping="Wrap" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Text="忙碌中…" Classes="muted-text" FontSize="12"
+                   IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+      </Grid>
+    </Border>
+
+    <Border Classes="glass-panel" Padding="14">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="10">
+          <TextBlock Text="历史数据" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+          <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
+                     Text="记录定义页、设备调试等通过设备调试 API 发起的读写操作。"/>
+          <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
+            <ComboBox ItemsSource="{Binding DeviceFilters}"
+                      SelectedValue="{Binding FilterDeviceId}"
+                      SelectedValueBinding="{Binding Id}"
+                      HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="vm:HistoryDeviceFilterItem">
+                  <TextBlock Text="{Binding DisplayName}"/>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Grid.Column="1" Classes="ghost-button" Content="刷新"
+                    Command="{Binding RefreshCommand}"/>
+            <Button Grid.Column="2" Classes="ghost-button" Content="清空"
+                    Command="{Binding ClearCommand}"/>
+          </Grid>
+        </StackPanel>
+
+        <ListBox Classes="entity-list" Margin="0,12,0,0" ItemsSource="{Binding Logs}">
+          <ListBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:HistoryLogItem">
+              <Border Classes="list-item-card">
+                <StackPanel Spacing="4">
+                  <Grid ColumnDefinitions="*,Auto" ColumnSpacing="10">
+                    <TextBlock Classes="primary-text" FontWeight="SemiBold">
+                      <Run Text="{Binding Operation}"/><Run Text=" · "/><Run Text="{Binding TargetText}"/>
+                    </TextBlock>
+                    <Border Grid.Column="1" Classes="tag-chip" Padding="8,2">
+                      <TextBlock Classes="accent-text" FontSize="11" Text="{Binding ResultText}"/>
+                    </Border>
+                  </Grid>
+                  <TextBlock Classes="muted-text" FontSize="12">
+                    <Run Text="{Binding TimeText}"/><Run Text=" · "/><Run Text="{Binding UserText}"/>
+                    <Run Text=" · "/><Run Text="{Binding Source}"/>
+                  </TextBlock>
+                  <TextBlock Classes="muted-text" FontSize="12" Text="{Binding DeviceText}"/>
+                  <TextBlock Classes="secondary-text" FontSize="12" TextTrimming="CharacterEllipsis">
+                    <Run Text="值："/><Run Text="{Binding ValueText}"/>
+                  </TextBlock>
+                  <Border Classes="list-item-divider"/>
+                </StackPanel>
+              </Border>
+            </DataTemplate>
+          </ListBox.ItemTemplate>
+        </ListBox>
+      </DockPanel>
+    </Border>
+  </DockPanel>
+</UserControl>

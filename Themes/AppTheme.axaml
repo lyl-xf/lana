@@ -69,6 +69,15 @@
       <SolidColorBrush x:Key="AppNavHoverBrush" Color="#281E2C3C"/>
       <SolidColorBrush x:Key="AppNavActiveBrush" Color="#3320D4BE"/>
       <SolidColorBrush x:Key="AppTagBrush" Color="#1A2A3D"/>
+      <SolidColorBrush x:Key="AppListItemBrush" Color="#2818202C"/>
+      <SolidColorBrush x:Key="AppListItemBorderBrush" Color="#3A506878"/>
+      <SolidColorBrush x:Key="AppListItemSelectedBrush" Color="#3320D4BE"/>
+      <SolidColorBrush x:Key="AppListIndexBrush" Color="#33182233"/>
+      <LinearGradientBrush x:Key="AppListDividerBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#0040E8D0" Offset="0"/>
+        <GradientStop Color="#9940E8D0" Offset="0.5"/>
+        <GradientStop Color="#0040E8D0" Offset="1"/>
+      </LinearGradientBrush>
       <SolidColorBrush x:Key="AppShadowBrush" Color="#66000000"/>
       <BoxShadows x:Key="AppGlassShadow">0 18 48 0 #66000000</BoxShadows>
       <BoxShadows x:Key="AppGlowShadow">0 0 28 0 #6640E8D0</BoxShadows>
@@ -143,6 +152,15 @@
       <SolidColorBrush x:Key="AppNavHoverBrush" Color="#EAF2F6"/>
       <SolidColorBrush x:Key="AppNavActiveBrush" Color="#D7F3EF"/>
       <SolidColorBrush x:Key="AppTagBrush" Color="#E6F4F1"/>
+      <SolidColorBrush x:Key="AppListItemBrush" Color="#F5F8FB"/>
+      <SolidColorBrush x:Key="AppListItemBorderBrush" Color="#C5D3E0"/>
+      <SolidColorBrush x:Key="AppListItemSelectedBrush" Color="#D7F3EF"/>
+      <SolidColorBrush x:Key="AppListIndexBrush" Color="#E8EEF4"/>
+      <LinearGradientBrush x:Key="AppListDividerBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#0014B8A6" Offset="0"/>
+        <GradientStop Color="#9914B8A6" Offset="0.5"/>
+        <GradientStop Color="#0014B8A6" Offset="1"/>
+      </LinearGradientBrush>
       <SolidColorBrush x:Key="AppShadowBrush" Color="#1A000000"/>
       <BoxShadows x:Key="AppGlassShadow">0 14 36 0 #14000000</BoxShadows>
       <BoxShadows x:Key="AppGlowShadow">0 0 24 0 #3314B8A6</BoxShadows>

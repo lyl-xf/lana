@@ -1,0 +1,29 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lana.ViewModels"
+             xmlns:vlc="using:LibVLCSharp.Avalonia"
+             x:Class="Lana.Views.Controls.CameraVideoTile"
+             x:DataType="vm:CameraPreviewSlot"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+
+  <Border Classes="glass-panel" Padding="8"
+          HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+    <DockPanel>
+      <Grid DockPanel.Dock="Top" ColumnDefinitions="*,Auto" Margin="0,0,0,6">
+        <TextBlock Text="{Binding Name}" Classes="primary-text" FontWeight="SemiBold"
+                   TextTrimming="CharacterEllipsis"/>
+        <TextBlock Grid.Column="1" Text="{Binding Status}" Classes="muted-text" FontSize="12"
+                   Margin="8,0,0,0"/>
+      </Grid>
+
+      <Border Background="#10000000" CornerRadius="12" ClipToBounds="True"
+              HorizontalAlignment="Stretch" VerticalAlignment="Stretch">
+        <vlc:VideoView x:Name="VideoHost"
+                       HorizontalAlignment="Stretch"
+                       VerticalAlignment="Stretch"/>
+      </Border>
+    </DockPanel>
+  </Border>
+</UserControl>

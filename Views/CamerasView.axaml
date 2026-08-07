@@ -1,0 +1,214 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:Lana.ViewModels"
+             xmlns:controls="using:Lana.Views.Controls"
+             x:Class="Lana.Views.CamerasView"
+             x:DataType="vm:CamerasViewModel">
+
+  <DockPanel>
+    <Border DockPanel.Dock="Bottom" Classes="glass-panel" Padding="12,8" Margin="0,10,0,0">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding StatusMessage}" Classes="accent-text" FontSize="13"
+                   TextWrapping="Wrap" VerticalAlignment="Center"/>
+        <TextBlock Grid.Column="1" Text="忙碌中…" Classes="muted-text" FontSize="12"
+                   IsVisible="{Binding IsBusy}" VerticalAlignment="Center" Margin="12,0,0,0"/>
+      </Grid>
+    </Border>
+
+    <TabControl SelectedIndex="{Binding SelectedTabIndex}">
+      <!-- 配置 -->
+      <TabItem Header="摄像头配置">
+        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+          <Border Classes="glass-panel" Padding="14">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Spacing="10">
+                <TextBlock Text="摄像头列表" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+                <TextBox Text="{Binding SearchText}" Classes="neon-input" PlaceholderText="按名称搜索…"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="ghost-button" Content="刷新" Command="{Binding RefreshCamerasCommand}"/>
+                  <Button Classes="cta-button" Content="新建" Command="{Binding NewCameraCommand}"/>
+                  <Button Classes="ghost-button" Content="编辑" Command="{Binding EditSelectedCameraCommand}"/>
+                  <Button Classes="ghost-button" Content="开启/关闭" Command="{Binding ToggleSelectedEnabledCommand}"/>
+                  <Button Classes="ghost-button" Content="删除" Command="{Binding DeleteSelectedCameraCommand}"/>
+                </StackPanel>
+              </StackPanel>
+
+              <ListBox Classes="entity-list" Margin="0,12,0,0"
+                       ItemsSource="{Binding CameraListItems}"
+                       SelectedItem="{Binding SelectedCamera}">
+                <ListBox.ItemTemplate>
+                  <DataTemplate x:DataType="vm:CameraListItem">
+                    <Border Classes="list-item-card">
+                      <StackPanel Spacing="6">
+                        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="10">
+                          <Border Classes="list-item-index">
+                            <TextBlock Classes="accent-text" FontWeight="Bold" FontSize="13"
+                                       HorizontalAlignment="Center"
+                                       Text="{Binding Id, StringFormat='#{0}'}"/>
+                          </Border>
+                          <TextBlock Grid.Column="1" Text="{Binding Name}" Classes="primary-text"
+                                     FontWeight="SemiBold" VerticalAlignment="Center"
+                                     TextTrimming="CharacterEllipsis"/>
+                          <Border Grid.Column="2" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center">
+                            <TextBlock Classes="accent-text" FontSize="11"
+                                       Text="{Binding IsEnabled, StringFormat='启用={0}'}"/>
+                          </Border>
+                        </Grid>
+                        <TextBlock Classes="muted-text" FontSize="12" TextTrimming="CharacterEllipsis"
+                                   Text="{Binding RtspUrl}"/>
+                        <Border Classes="list-item-divider"/>
+                      </StackPanel>
+                    </Border>
+                  </DataTemplate>
+                </ListBox.ItemTemplate>
+              </ListBox>
+            </DockPanel>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="16"
+                  IsVisible="{Binding IsEditing}">
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+              <StackPanel Spacing="12">
+                <TextBlock Text="摄像头编辑" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+
+                <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                      RowSpacing="10" ColumnSpacing="12">
+                  <TextBlock Text="名称" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Column="1" Text="{Binding EditName}" Classes="neon-input"
+                           PlaceholderText="门口摄像头"/>
+
+                  <TextBlock Grid.Row="1" Text="视频流地址" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="1" Grid.Column="1" Text="{Binding EditRtspUrl}" Classes="neon-input"
+                           PlaceholderText="rtsp://192.168.1.64:554/stream1"/>
+
+                  <TextBlock Grid.Row="2" Text="用户名" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="2" Grid.Column="1" Text="{Binding EditUsername}" Classes="neon-input"
+                           PlaceholderText="可选，若 URL 未含账号"/>
+
+                  <TextBlock Grid.Row="3" Text="密码" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="3" Grid.Column="1" Text="{Binding EditPassword}" Classes="neon-input"
+                           PasswordChar="●" PlaceholderText="可选"/>
+
+                  <TextBlock Grid.Row="4" Text="排序" Classes="field-label" VerticalAlignment="Center"/>
+                  <NumericUpDown Grid.Row="4" Grid.Column="1" Value="{Binding EditSortOrder}"
+                                 Classes="neon-input" FormatString="0"/>
+
+                  <TextBlock Grid.Row="5" Text="备注" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBox Grid.Row="5" Grid.Column="1" Text="{Binding EditDescription}" Classes="neon-input"/>
+
+                  <TextBlock Grid.Row="6" Text="启用" Classes="field-label" VerticalAlignment="Center"/>
+                  <ToggleSwitch Grid.Row="6" Grid.Column="1" IsChecked="{Binding EditIsEnabled}"
+                                OnContent="开" OffContent="关"/>
+                </Grid>
+
+                <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
+                           Text="启用后可在「摄像头预览」中勾选该路进行播放。播放组件使用随应用分发的 LibVLC。"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="10">
+                  <Button Classes="cta-button" Content="保存"
+                          Command="{Binding SaveCameraCommand}"
+                          IsEnabled="{Binding !IsBusy}"/>
+                  <Button Classes="ghost-button" Content="取消"
+                          Command="{Binding CancelEditCommand}"/>
+                </StackPanel>
+              </StackPanel>
+            </ScrollViewer>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="16"
+                  IsVisible="{Binding !IsEditing}">
+            <StackPanel VerticalAlignment="Center" Spacing="8">
+              <TextBlock Text="选择左侧摄像头后点击「编辑」，或「新建」添加 RTSP 摄像头"
+                         Classes="muted-text" TextWrapping="Wrap" HorizontalAlignment="Center"/>
+              <TextBlock Text="在「摄像头预览」页勾选要看的设备后再开始预览"
+                         Classes="muted-text" FontSize="12" HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </TabItem>
+
+      <!-- 预览 -->
+      <TabItem Header="摄像头预览">
+        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+          <Border Classes="glass-panel" Padding="14" MinWidth="360">
+            <DockPanel>
+              <StackPanel DockPanel.Dock="Top" Spacing="10">
+                <TextBlock Text="选择预览设备" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
+                <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
+                           Text="点击行或勾选框选择要预览的摄像头，再点「开始预览」。建议先预览 1～2 路。"/>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="ghost-button" Content="全选启用"
+                          Command="{Binding SelectAllEnabledForPreviewCommand}"/>
+                  <Button Classes="ghost-button" Content="清除勾选"
+                          Command="{Binding ClearPreviewSelectionCommand}"/>
+                </StackPanel>
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <Button Classes="cta-button" Content="开始预览"
+                          Command="{Binding RefreshPreviewCommand}"/>
+                  <Button Classes="ghost-button" Content="停止全部"
+                          Command="{Binding StopPreviewCommand}"/>
+                </StackPanel>
+              </StackPanel>
+
+              <ScrollViewer Margin="0,12,0,0" HorizontalScrollBarVisibility="Disabled"
+                            VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding CameraListItems}"
+                              x:Name="PreviewPickList">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:CameraListItem">
+                      <Border Classes="preview-pick-card"
+                              Classes.preview-picked="{Binding IsSelectedForPreview}"
+                              PointerPressed="OnPreviewPickPressed">
+                        <Grid ColumnDefinitions="Auto,Auto,*,Auto" ColumnSpacing="10">
+                          <CheckBox IsChecked="{Binding IsSelectedForPreview, Mode=TwoWay}"
+                                    IsEnabled="{Binding IsEnabled}"
+                                    VerticalAlignment="Center"/>
+                          <Border Grid.Column="1" Classes="list-item-index">
+                            <TextBlock Classes="accent-text" FontWeight="Bold" FontSize="13"
+                                       HorizontalAlignment="Center"
+                                       Text="{Binding Id, StringFormat='#{0}'}"/>
+                          </Border>
+                          <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
+                            <TextBlock Text="{Binding Name}" Classes="primary-text" FontWeight="SemiBold"
+                                       TextTrimming="CharacterEllipsis"/>
+                            <TextBlock Classes="muted-text" FontSize="12" TextTrimming="CharacterEllipsis"
+                                       Text="{Binding RtspUrl}"/>
+                          </StackPanel>
+                          <Border Grid.Column="3" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center">
+                            <TextBlock Classes="accent-text" FontSize="11"
+                                       Text="{Binding IsEnabled, StringFormat='启用={0}'}"/>
+                          </Border>
+                        </Grid>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </DockPanel>
+          </Border>
+
+          <Border Grid.Column="1" Classes="glass-panel" Padding="8">
+            <ItemsControl x:Name="PreviewHost"
+                          ItemsSource="{Binding PreviewSlots}"
+                          HorizontalAlignment="Stretch"
+                          VerticalAlignment="Stretch">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <UniformGrid Columns="{Binding #PreviewHost.((vm:CamerasViewModel)DataContext).PreviewGridColumns}"/>
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:CameraPreviewSlot">
+                  <controls:CameraVideoTile Margin="4"
+                                            HorizontalAlignment="Stretch"
+                                            VerticalAlignment="Stretch"
+                                            DataContext="{Binding}"/>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Border>
+        </Grid>
+      </TabItem>
+    </TabControl>
+  </DockPanel>
+</UserControl>

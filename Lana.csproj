@@ -28,6 +28,18 @@
     </PackageReference>
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
     <PackageReference Include="Dapper" Version="2.1.66" />
+    <PackageReference Include="IoTClient" Version="1.0.40" />
+    <PackageReference Include="LibVLCSharp" Version="3.9.7" />
+    <PackageReference Include="LibVLCSharp.Avalonia" Version="3.9.7" />
     <PackageReference Include="Microsoft.Data.Sqlite" Version="9.0.4" />
+    <PackageReference Include="MQTTnet" Version="4.3.3.952" />
+    <PackageReference Include="System.IO.Ports" Version="9.0.4" />
+    <PackageReference Include="ToolGood.Words.Pinyin" Version="3.1.0.4" />
+    <PackageReference Include="VideoLAN.LibVLC.Mac" Version="3.1.2" />
+    <PackageReference Include="VideoLAN.LibVLC.Windows" Version="3.0.21" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Licenses\**\*" CopyToOutputDirectory="PreserveNewest" Link="Licenses\%(RecursiveDir)%(Filename)%(Extension)" />
   </ItemGroup>
 </Project>
