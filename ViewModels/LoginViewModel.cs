@@ -1,8 +1,8 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using AvaloniaUse.Services;
+using Lana.Services;
 
-namespace AvaloniaUse.ViewModels;
+namespace Lana.ViewModels;
 
 public partial class LoginViewModel : ViewModelBase
 {

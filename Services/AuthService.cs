@@ -1,9 +1,9 @@
-using AvaloniaUse.Data;
-using AvaloniaUse.Data.Mappers;
-using AvaloniaUse.Data.Sqlite;
-using AvaloniaUse.Models;
+using Lana.Data;
+using Lana.Data.Mappers;
+using Lana.Data.Sqlite;
+using Lana.Models;
 
-namespace AvaloniaUse.Services;
+namespace Lana.Services;
 
 public sealed class AuthService : IAuthService
 {

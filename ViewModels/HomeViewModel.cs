@@ -1,7 +1,7 @@
-using AvaloniaUse.Models;
+using Lana.Models;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace AvaloniaUse.ViewModels;
+namespace Lana.ViewModels;
 
 public partial class HomeViewModel : ViewModelBase
 {
@@ -21,7 +21,7 @@ public partial class HomeViewModel : ViewModelBase
     public HomeViewModel(AppUser user)
     {
         WelcomeTitle = $"你好，{user.DisplayName}";
-        WelcomeSubtitle = $"{user.Role} · AvaloniaUse 工作台";
+        WelcomeSubtitle = $"{user.Role} · Lana 工作台";
 
         Stats =
         [

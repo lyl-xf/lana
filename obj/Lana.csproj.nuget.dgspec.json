@@ -1,23 +1,23 @@
 {
   "format": 1,
   "restore": {
-    "D:\\WorkFile\\Avalonia-Use\\AvaloniaUse.csproj": {}
+    "D:\\WorkFile\\lana\\Lana.csproj": {}
   },
   "projects": {
-    "D:\\WorkFile\\Avalonia-Use\\AvaloniaUse.csproj": {
+    "D:\\WorkFile\\lana\\Lana.csproj": {
       "version": "1.0.0",
       "restore": {
-        "projectUniqueName": "D:\\WorkFile\\Avalonia-Use\\AvaloniaUse.csproj",
-        "projectName": "AvaloniaUse",
-        "projectPath": "D:\\WorkFile\\Avalonia-Use\\AvaloniaUse.csproj",
-        "packagesPath": "C:\\Users\\liuyulet\\AppData\\Local\\Temp\\cursor-sandbox-cache\\b1d40641e58eb69960edc7c59c187812\\nuget",
-        "outputPath": "D:\\WorkFile\\Avalonia-Use\\obj\\",
+        "projectUniqueName": "D:\\WorkFile\\lana\\Lana.csproj",
+        "projectName": "Lana",
+        "projectPath": "D:\\WorkFile\\lana\\Lana.csproj",
+        "packagesPath": "C:\\Users\\liuyulet\\.nuget\\packages\\",
+        "outputPath": "D:\\WorkFile\\lana\\obj\\",
         "projectStyle": "PackageReference",
         "fallbackFolders": [
           "C:\\VisualStudio2022\\Shared\\NuGetPackages"
         ],
         "configFilePaths": [
-          "D:\\WorkFile\\Avalonia-Use\\NuGet.Config",
+          "D:\\WorkFile\\lana\\NuGet.Config",
           "C:\\Users\\liuyulet\\AppData\\Roaming\\NuGet\\NuGet.Config",
           "C:\\Program Files (x86)\\NuGet\\Config\\Microsoft.VisualStudio.FallbackLocation.config"
         ],
@@ -43,8 +43,7 @@
           "enableAudit": "true",
           "auditLevel": "low",
           "auditMode": "direct"
-        },
-        "SdkAnalysisLevel": "9.0.300"
+        }
       },
       "frameworks": {
         "net9.0": {

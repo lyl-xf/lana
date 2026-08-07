@@ -1,7 +1,7 @@
 using System.Security.Cryptography;
 using System.Text;
 
-namespace AvaloniaUse.Data;
+namespace Lana.Data;
 
 public static class PasswordHasher
 {

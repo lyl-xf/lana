@@ -1,8 +1,8 @@
-using AvaloniaUse.Data.Sqlite;
-using AvaloniaUse.Services;
+using Lana.Data.Sqlite;
+using Lana.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace AvaloniaUse.ViewModels;
+namespace Lana.ViewModels;
 
 public partial class MainViewModel : ViewModelBase
 {

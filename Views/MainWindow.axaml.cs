@@ -1,6 +1,6 @@
 using Avalonia.Controls;
 
-namespace AvaloniaUse.Views;
+namespace Lana.Views;
 
 public partial class MainWindow : Window
 {

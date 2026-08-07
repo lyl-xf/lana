@@ -1,8 +1,8 @@
 using Avalonia.Controls;
 using Avalonia.Input;
-using AvaloniaUse.ViewModels;
+using Lana.ViewModels;
 
-namespace AvaloniaUse.Views;
+namespace Lana.Views;
 
 public partial class SettingsView : UserControl
 {

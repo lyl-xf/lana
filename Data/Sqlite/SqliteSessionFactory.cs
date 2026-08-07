@@ -1,4 +1,4 @@
-namespace AvaloniaUse.Data.Sqlite;
+namespace Lana.Data.Sqlite;
 
 public sealed class SqliteSessionFactory : ISqliteSessionFactory
 {

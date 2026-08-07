@@ -8,8 +8,8 @@ build_property.AvaloniaNameGeneratorViewFileNamingStrategy = NamespaceAndClassNa
 build_property.AvaloniaNameGeneratorAttachDevTools = true
 build_property.AvaloniaUseCompiledBindingsByDefault = true
 build_property.AvaloniaMainPackageVersion = 12.1.1
-build_property.AvaloniaPreviewerNetCoreToolPath = C:\Users\liuyulet\AppData\Local\Temp\cursor-sandbox-cache\b1d40641e58eb69960edc7c59c187812\nuget\avalonia\12.1.1\buildTransitive\\..\tools\net8.0\designer\Avalonia.Designer.HostApp.dll
-build_property.AvaloniaResourcePaths = D:\WorkFile\Avalonia-Use\Assets\avalonia-logo.ico,D:\WorkFile\Avalonia-Use\Themes\AppTheme.axaml,D:\WorkFile\Avalonia-Use\Assets\avalonia-logo.ico,D:\WorkFile\Avalonia-Use\App.axaml,D:\WorkFile\Avalonia-Use\Themes\AppTheme.axaml,D:\WorkFile\Avalonia-Use\Views\AboutView.axaml,D:\WorkFile\Avalonia-Use\Views\AnalyticsView.axaml,D:\WorkFile\Avalonia-Use\Views\HomeView.axaml,D:\WorkFile\Avalonia-Use\Views\LoginView.axaml,D:\WorkFile\Avalonia-Use\Views\MainWindow.axaml,D:\WorkFile\Avalonia-Use\Views\MessagesView.axaml,D:\WorkFile\Avalonia-Use\Views\ProjectsView.axaml,D:\WorkFile\Avalonia-Use\Views\SettingsView.axaml,D:\WorkFile\Avalonia-Use\Views\ShellView.axaml
+build_property.AvaloniaPreviewerNetCoreToolPath = C:\Users\liuyulet\.nuget\packages\avalonia\12.1.1\buildTransitive\\..\tools\net8.0\designer\Avalonia.Designer.HostApp.dll
+build_property.AvaloniaResourcePaths = D:\WorkFile\lana\Assets\avalonia-logo.ico,D:\WorkFile\lana\Themes\AppTheme.axaml,D:\WorkFile\lana\Assets\avalonia-logo.ico,D:\WorkFile\lana\App.axaml,D:\WorkFile\lana\Themes\AppTheme.axaml,D:\WorkFile\lana\Views\AboutView.axaml,D:\WorkFile\lana\Views\AnalyticsView.axaml,D:\WorkFile\lana\Views\HomeView.axaml,D:\WorkFile\lana\Views\LoginView.axaml,D:\WorkFile\lana\Views\MainWindow.axaml,D:\WorkFile\lana\Views\MessagesView.axaml,D:\WorkFile\lana\Views\ProjectsView.axaml,D:\WorkFile\lana\Views\SettingsView.axaml,D:\WorkFile\lana\Views\ShellView.axaml
 build_property.MvvmToolkitEnableINotifyPropertyChangingSupport = true
 build_property._MvvmToolkitIsUsingWindowsRuntimePack = false
 build_property.CsWinRTComponent = 
@@ -23,42 +23,42 @@ build_property.InvariantGlobalization =
 build_property.PlatformNeutralAssembly = 
 build_property.EnforceExtendedAnalyzerRules = 
 build_property._SupportedPlatformList = Linux,macOS,Windows
-build_property.RootNamespace = AvaloniaUse
-build_property.ProjectDir = D:\WorkFile\Avalonia-Use\
+build_property.RootNamespace = Lana
+build_property.ProjectDir = D:\WorkFile\lana\
 build_property.EnableComHosting = 
 build_property.EnableGeneratedComInterfaceComImportInterop = 
 build_property.EffectiveAnalysisLevelStyle = 9.0
 build_property.EnableCodeStyleSeverity = 
 
-[D:/WorkFile/Avalonia-Use/App.axaml]
+[D:/WorkFile/lana/App.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Themes/AppTheme.axaml]
+[D:/WorkFile/lana/Themes/AppTheme.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/AboutView.axaml]
+[D:/WorkFile/lana/Views/AboutView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/AnalyticsView.axaml]
+[D:/WorkFile/lana/Views/AnalyticsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/HomeView.axaml]
+[D:/WorkFile/lana/Views/HomeView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/LoginView.axaml]
+[D:/WorkFile/lana/Views/LoginView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/MainWindow.axaml]
+[D:/WorkFile/lana/Views/MainWindow.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/MessagesView.axaml]
+[D:/WorkFile/lana/Views/MessagesView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/ProjectsView.axaml]
+[D:/WorkFile/lana/Views/ProjectsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/SettingsView.axaml]
+[D:/WorkFile/lana/Views/SettingsView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml
 
-[D:/WorkFile/Avalonia-Use/Views/ShellView.axaml]
+[D:/WorkFile/lana/Views/ShellView.axaml]
 build_metadata.AdditionalFiles.SourceItemGroup = AvaloniaXaml

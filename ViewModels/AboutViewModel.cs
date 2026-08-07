@@ -1,10 +1,10 @@
-namespace AvaloniaUse.ViewModels;
+namespace Lana.ViewModels;
 
 public partial class AboutViewModel : ViewModelBase
 {
     public string Title => "关于";
 
-    public string Subtitle => "AvaloniaUse 跨平台桌面应用骨架";
+    public string Subtitle => "Lana 跨平台桌面应用骨架";
 
     public string Version => "1.0.0";
 

@@ -1,14 +1,14 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
-using AvaloniaUse.Data;
-using AvaloniaUse.Data.Sqlite;
-using AvaloniaUse.Services;
-using AvaloniaUse.Themes;
-using AvaloniaUse.ViewModels;
-using AvaloniaUse.Views;
+using Lana.Data;
+using Lana.Data.Sqlite;
+using Lana.Services;
+using Lana.Themes;
+using Lana.ViewModels;
+using Lana.Views;
 
-namespace AvaloniaUse;
+namespace Lana;
 
 public partial class App : Application
 {

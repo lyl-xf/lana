@@ -1,8 +1,8 @@
-using AvaloniaUse.Data.Entities;
-using AvaloniaUse.Data.Mappers;
-using AvaloniaUse.Data.Sqlite;
+using Lana.Data.Entities;
+using Lana.Data.Mappers;
+using Lana.Data.Sqlite;
 
-namespace AvaloniaUse.Data;
+namespace Lana.Data;
 
 public static class DbInitializer
 {

@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:AvaloniaUse.ViewModels"
-             x:Class="AvaloniaUse.Views.LoginView"
+             xmlns:vm="using:Lana.ViewModels"
+             x:Class="Lana.Views.LoginView"
              x:DataType="vm:LoginViewModel">
 
   <Grid>
@@ -24,11 +24,11 @@
           <Border Width="64" Height="64" CornerRadius="18" Classes="glow-card"
                   HorizontalAlignment="Left"
                   Background="{DynamicResource AppAccentGradientBrush}">
-            <TextBlock Text="AU" FontSize="24" FontWeight="Bold" Classes="on-accent-text"
+            <TextBlock Text="LA" FontSize="24" FontWeight="Bold" Classes="on-accent-text"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
 
-          <TextBlock Text="AVALONIA USE" Classes="brand-mark" HorizontalAlignment="Left"/>
+          <TextBlock Text="LANA" Classes="brand-mark" HorizontalAlignment="Left"/>
           <TextBlock Text="跨平台桌面体验" Classes="hero-title" TextWrapping="Wrap"/>
           <TextBlock Text="一套代码，覆盖 Windows / Linux / macOS。登录后进入沉浸式工作台，数据由本地 SQLite 持久化。"
                      Classes="hero-subtitle" TextWrapping="Wrap"/>

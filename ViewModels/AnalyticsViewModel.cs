@@ -1,4 +1,4 @@
-namespace AvaloniaUse.ViewModels;
+namespace Lana.ViewModels;
 
 public partial class AnalyticsViewModel : ViewModelBase
 {

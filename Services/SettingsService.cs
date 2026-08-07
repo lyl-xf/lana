@@ -1,7 +1,7 @@
-using AvaloniaUse.Data.Mappers;
-using AvaloniaUse.Data.Sqlite;
+using Lana.Data.Mappers;
+using Lana.Data.Sqlite;
 
-namespace AvaloniaUse.Services;
+namespace Lana.Services;
 
 public sealed class SettingsService : ISettingsService
 {

@@ -2,7 +2,7 @@ using System.Data;
 using Dapper;
 using Microsoft.Data.Sqlite;
 
-namespace AvaloniaUse.Data.Sqlite;
+namespace Lana.Data.Sqlite;
 
 public sealed class SqliteSession : ISqliteSession
 {

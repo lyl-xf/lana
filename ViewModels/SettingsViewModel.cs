@@ -1,11 +1,11 @@
-using AvaloniaUse.Data;
-using AvaloniaUse.Models;
-using AvaloniaUse.Services;
-using AvaloniaUse.Themes;
+using Lana.Data;
+using Lana.Models;
+using Lana.Services;
+using Lana.Themes;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 
-namespace AvaloniaUse.ViewModels;
+namespace Lana.ViewModels;
 
 public partial class SettingsViewModel : ViewModelBase
 {

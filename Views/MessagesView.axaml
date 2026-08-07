@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:AvaloniaUse.ViewModels"
-             x:Class="AvaloniaUse.Views.MessagesView"
+             xmlns:vm="using:Lana.ViewModels"
+             x:Class="Lana.Views.MessagesView"
              x:DataType="vm:MessagesViewModel">
 
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">

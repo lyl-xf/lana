@@ -1,9 +1,9 @@
-﻿
+
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AvaloniaUse", "AvaloniaUse.csproj", "{D7596C33-CBEE-49F3-9726-4FEDD07909BF}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Lana", "Lana.csproj", "{D7596C33-CBEE-49F3-9726-4FEDD07909BF}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

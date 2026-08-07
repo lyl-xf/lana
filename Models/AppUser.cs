@@ -1,4 +1,4 @@
-namespace AvaloniaUse.Models;
+namespace Lana.Models;
 
 public sealed class AppUser
 {

@@ -1,4 +1,4 @@
-namespace AvaloniaUse.Data.Entities;
+namespace Lana.Data.Entities;
 
 public sealed class UserEntity
 {

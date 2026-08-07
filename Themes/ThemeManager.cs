@@ -1,7 +1,7 @@
 using Avalonia;
 using Avalonia.Styling;
 
-namespace AvaloniaUse.Themes;
+namespace Lana.Themes;
 
 public static class ThemeManager
 {

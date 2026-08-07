@@ -1,11 +1,12 @@
-﻿<Project Sdk="Microsoft.NET.Sdk">
+<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
     <OutputType>WinExe</OutputType>
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <ApplicationManifest>app.manifest</ApplicationManifest>
-    <RootNamespace>AvaloniaUse</RootNamespace>
+    <RootNamespace>Lana</RootNamespace>
+    <AssemblyName>Lana</AssemblyName>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <ApplicationIcon>Assets/avalonia-logo.ico</ApplicationIcon>
     <RuntimeIdentifiers>win-x64;linux-x64;osx-x64;osx-arm64</RuntimeIdentifiers>

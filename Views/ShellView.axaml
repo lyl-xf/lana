@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:AvaloniaUse.ViewModels"
-             x:Class="AvaloniaUse.Views.ShellView"
+             xmlns:vm="using:Lana.ViewModels"
+             x:Class="Lana.Views.ShellView"
              x:DataType="vm:ShellViewModel">
 
   <DockPanel>
@@ -19,11 +19,11 @@
             <StackPanel Orientation="Horizontal" Spacing="12">
               <Border Width="40" Height="40" CornerRadius="12"
                       Background="{DynamicResource AppAccentGradientBrush}">
-                <TextBlock Text="AU" FontWeight="Bold" Classes="on-accent-text"
+                <TextBlock Text="LA" FontWeight="Bold" Classes="on-accent-text"
                            HorizontalAlignment="Center" VerticalAlignment="Center"/>
               </Border>
               <StackPanel VerticalAlignment="Center" Spacing="2">
-                <TextBlock Text="AvaloniaUse" FontWeight="SemiBold" Classes="primary-text"/>
+                <TextBlock Text="Lana" FontWeight="SemiBold" Classes="primary-text"/>
                 <TextBlock Text="Workspace" Classes="muted-text" FontSize="11"/>
               </StackPanel>
             </StackPanel>

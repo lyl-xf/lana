@@ -1,7 +1,7 @@
-﻿using Avalonia;
+using Avalonia;
 using System;
 
-namespace AvaloniaUse;
+namespace Lana;
 
 sealed class Program
 {

@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:AvaloniaUse.ViewModels"
-             x:Class="AvaloniaUse.Views.AboutView"
+             xmlns:vm="using:Lana.ViewModels"
+             x:Class="Lana.Views.AboutView"
              x:DataType="vm:AboutViewModel">
 
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
@@ -11,7 +11,7 @@
           <Border Width="72" Height="72" CornerRadius="20"
                   Background="{DynamicResource AppAccentGradientBrush}"
                   HorizontalAlignment="Center">
-            <TextBlock Text="AU" FontSize="28" FontWeight="Bold" Classes="on-accent-text"
+            <TextBlock Text="LA" FontSize="28" FontWeight="Bold" Classes="on-accent-text"
                        HorizontalAlignment="Center" VerticalAlignment="Center"/>
           </Border>
           <TextBlock Text="{Binding Title}" Classes="section-title" HorizontalAlignment="Center"/>

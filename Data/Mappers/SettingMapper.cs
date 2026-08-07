@@ -1,7 +1,7 @@
-using AvaloniaUse.Data.Entities;
-using AvaloniaUse.Data.Sqlite;
+using Lana.Data.Entities;
+using Lana.Data.Sqlite;
 
-namespace AvaloniaUse.Data.Mappers;
+namespace Lana.Data.Mappers;
 
 /// <summary>
 /// 设置表 SQL Mapper（MyBatis 风格：SQL 与代码分离）。

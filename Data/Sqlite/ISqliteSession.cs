@@ -1,6 +1,6 @@
 using System.Data;
 
-namespace AvaloniaUse.Data.Sqlite;
+namespace Lana.Data.Sqlite;
 
 /// <summary>
 /// 轻量 SQL 会话，风格接近 MyBatis SqlSession：手写 SQL + 参数对象映射。

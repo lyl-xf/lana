@@ -1,4 +1,4 @@
-namespace AvaloniaUse.Services;
+namespace Lana.Services;
 
 public interface ISettingsService
 {

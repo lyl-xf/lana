@@ -1,6 +1,6 @@
-using AvaloniaUse.Models;
+using Lana.Models;
 
-namespace AvaloniaUse.Services;
+namespace Lana.Services;
 
 public interface IAuthService
 {

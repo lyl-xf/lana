@@ -1,6 +1,6 @@
 using CommunityToolkit.Mvvm.ComponentModel;
 
-namespace AvaloniaUse.ViewModels;
+namespace Lana.ViewModels;
 
 public partial class ProjectsViewModel : ViewModelBase
 {
@@ -10,7 +10,7 @@ public partial class ProjectsViewModel : ViewModelBase
 
     public IReadOnlyList<ProjectItem> Projects { get; } =
     [
-        new("AvaloniaUse Desktop", "进行中", "桌面端骨架与主题系统", "85%"),
+        new("Lana Desktop", "进行中", "桌面端骨架与主题系统", "85%"),
         new("Auth Module", "已完成", "SQLite 登录认证与会话", "100%"),
         new("Publish Pipeline", "规划中", "Windows / Linux / macOS 发布脚本", "20%"),
         new("Plugin Hub", "待启动", "后续扩展插件市场能力", "0%"),

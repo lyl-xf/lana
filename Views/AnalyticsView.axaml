@@ -1,7 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="using:AvaloniaUse.ViewModels"
-             x:Class="AvaloniaUse.Views.AnalyticsView"
+             xmlns:vm="using:Lana.ViewModels"
+             x:Class="Lana.Views.AnalyticsView"
              x:DataType="vm:AnalyticsViewModel">
 
   <ScrollViewer HorizontalScrollBarVisibility="Disabled">
