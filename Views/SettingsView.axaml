@@ -1,0 +1,118 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUse.ViewModels"
+             x:Class="AvaloniaUse.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                VerticalScrollBarVisibility="Auto">
+    <StackPanel Spacing="20"
+                Margin="24"
+                MaxWidth="820"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center">
+
+      <Border Classes="glass-panel" Padding="22">
+        <StackPanel Spacing="16">
+          <TextBlock Text="账号" FontSize="18" FontWeight="SemiBold" Classes="primary-text"/>
+          <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto" RowSpacing="12">
+            <TextBlock Text="显示名称" Classes="field-label" VerticalAlignment="Center"/>
+            <TextBlock Grid.Column="1" Text="{Binding DisplayName}" Classes="secondary-text" VerticalAlignment="Center"/>
+
+            <TextBlock Grid.Row="1" Text="用户名" Classes="field-label" VerticalAlignment="Center"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Username}" Classes="secondary-text" VerticalAlignment="Center"/>
+
+            <TextBlock Grid.Row="2" Text="角色" Classes="field-label" VerticalAlignment="Center"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding Role}" Classes="secondary-text" VerticalAlignment="Center"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="glass-panel" Padding="22">
+        <StackPanel Spacing="16">
+          <StackPanel Spacing="4">
+            <TextBlock Text="主题风格" FontSize="18" FontWeight="SemiBold" Classes="primary-text"/>
+            <TextBlock Text="选择 Aurora 深色或 Snow 白色，立即生效并保存到 SQLite" Classes="muted-text" FontSize="12"/>
+          </StackPanel>
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+            <Border Classes="theme-card"
+                    Classes.theme-selected="{Binding IsAuroraSelected}"
+                    PointerPressed="OnAuroraThemePressed">
+              <StackPanel Spacing="10">
+                <Border Height="72" CornerRadius="12" ClipToBounds="True">
+                  <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                      <GradientStop Color="#070B14" Offset="0"/>
+                      <GradientStop Color="#0F1B2D" Offset="0.5"/>
+                      <GradientStop Color="#102820" Offset="1"/>
+                    </LinearGradientBrush>
+                  </Border.Background>
+                  <StackPanel Orientation="Horizontal" Spacing="8" Margin="12" VerticalAlignment="Bottom">
+                    <Border Width="18" Height="18" CornerRadius="9" Background="#40E8D0"/>
+                    <Border Width="18" Height="18" CornerRadius="9" Background="#F0B429"/>
+                    <Border Width="18" Height="18" CornerRadius="9" Background="#22A6F2"/>
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="Aurora Night" FontWeight="SemiBold" Classes="primary-text"/>
+                <TextBlock Text="当前默认深色风格，玻璃拟态 + 青绿点缀" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
+                <Button Content="使用此主题" Classes="ghost-button"
+                        Command="{Binding SelectAuroraThemeCommand}"
+                        HorizontalAlignment="Left"/>
+              </StackPanel>
+            </Border>
+
+            <Border Grid.Column="1" Classes="theme-card"
+                    Classes.theme-selected="{Binding IsSnowSelected}"
+                    PointerPressed="OnSnowThemePressed">
+              <StackPanel Spacing="10">
+                <Border Height="72" CornerRadius="12" ClipToBounds="True"
+                        BorderBrush="#22000000" BorderThickness="1">
+                  <Border.Background>
+                    <LinearGradientBrush StartPoint="0%,0%" EndPoint="100%,100%">
+                      <GradientStop Color="#F8FBFE" Offset="0"/>
+                      <GradientStop Color="#EEF4FA" Offset="0.5"/>
+                      <GradientStop Color="#E8F4F0" Offset="1"/>
+                    </LinearGradientBrush>
+                  </Border.Background>
+                  <StackPanel Orientation="Horizontal" Spacing="8" Margin="12" VerticalAlignment="Bottom">
+                    <Border Width="18" Height="18" CornerRadius="9" Background="#14B8A6"/>
+                    <Border Width="18" Height="18" CornerRadius="9" Background="#E2A93B"/>
+                    <Border Width="18" Height="18" CornerRadius="9" Background="#2B7DE9"/>
+                  </StackPanel>
+                </Border>
+                <TextBlock Text="Snow Light" FontWeight="SemiBold" Classes="primary-text"/>
+                <TextBlock Text="明亮白色风格，清爽面板 + 柔和强调色" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
+                <Button Content="使用此主题" Classes="ghost-button"
+                        Command="{Binding SelectSnowThemeCommand}"
+                        HorizontalAlignment="Left"/>
+              </StackPanel>
+            </Border>
+          </Grid>
+
+          <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+            <StackPanel Spacing="4">
+              <TextBlock Text="动效增强" Classes="secondary-text"/>
+              <TextBlock Text="演示开关，可扩展页面过渡动画" Classes="muted-text" FontSize="12"/>
+            </StackPanel>
+            <ToggleSwitch Grid.Column="1" IsChecked="{Binding EnableAnimations}" OnContent="开" OffContent="关"/>
+          </Grid>
+
+          <Button Content="恢复默认" Classes="ghost-button" Command="{Binding ResetDemoCommand}"
+                  HorizontalAlignment="Left" Padding="16,8"/>
+
+          <TextBlock Text="{Binding StatusMessage}" Classes="accent-text" FontSize="13"/>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="glass-panel" Padding="22">
+        <StackPanel Spacing="10">
+          <TextBlock Text="SQLite 数据源" FontSize="18" FontWeight="SemiBold" Classes="primary-text"/>
+          <TextBlock Text="用户账号与偏好设置都保存在本地数据库中" Classes="muted-text" FontSize="12"/>
+          <TextBox Text="{Binding DatabasePath}" IsReadOnly="True" Classes="neon-input"
+                   TextWrapping="Wrap"/>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

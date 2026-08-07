@@ -1,0 +1,154 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+  <ResourceDictionary.ThemeDictionaries>
+
+    <!-- Aurora Night：当前深色风格 -->
+    <ResourceDictionary x:Key="Dark">
+      <LinearGradientBrush x:Key="AppWindowBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#070B14" Offset="0"/>
+        <GradientStop Color="#0E1A2B" Offset="0.55"/>
+        <GradientStop Color="#0C241C" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppLoginBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#070B14" Offset="0"/>
+        <GradientStop Color="#0F1B2D" Offset="0.45"/>
+        <GradientStop Color="#102820" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppHeroBannerBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#CC132033" Offset="0"/>
+        <GradientStop Color="#991A3A2E" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppAccentGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#40E8D0" Offset="0"/>
+        <GradientStop Color="#F0B429" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppCtaGradientBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#40E8D0" Offset="0"/>
+        <GradientStop Color="#F0B429" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppDividerBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#0040E8D0" Offset="0"/>
+        <GradientStop Color="#8840E8D0" Offset="0.5"/>
+        <GradientStop Color="#0040E8D0" Offset="1"/>
+      </LinearGradientBrush>
+      <RadialGradientBrush x:Key="AppGlowTealBrush">
+        <GradientStop Color="#3340E8D0" Offset="0"/>
+        <GradientStop Color="#0040E8D0" Offset="1"/>
+      </RadialGradientBrush>
+      <RadialGradientBrush x:Key="AppGlowAmberBrush">
+        <GradientStop Color="#55F0B429" Offset="0"/>
+        <GradientStop Color="#00F0B429" Offset="1"/>
+      </RadialGradientBrush>
+      <RadialGradientBrush x:Key="AppGlowBlueBrush">
+        <GradientStop Color="#3322A6F2" Offset="0"/>
+        <GradientStop Color="#0022A6F2" Offset="1"/>
+      </RadialGradientBrush>
+
+      <SolidColorBrush x:Key="AppPrimaryTextBrush" Color="#F4F7FB"/>
+      <SolidColorBrush x:Key="AppSecondaryTextBrush" Color="#E8EEF7"/>
+      <SolidColorBrush x:Key="AppMutedTextBrush" Color="#8BA0B8"/>
+      <SolidColorBrush x:Key="AppBodyTextBrush" Color="#D5E0EE"/>
+      <SolidColorBrush x:Key="AppAccentBrush" Color="#40E8D0"/>
+      <SolidColorBrush x:Key="AppAccentSoftBrush" Color="#3340E8D0"/>
+      <SolidColorBrush x:Key="AppOnAccentBrush" Color="#0B1220"/>
+      <SolidColorBrush x:Key="AppDangerBrush" Color="#FF7A7A"/>
+      <SolidColorBrush x:Key="AppTitleBarBrush" Color="#CC0A1018"/>
+      <SolidColorBrush x:Key="AppTitleBarBorderBrush" Color="#1AFFFFFF"/>
+      <SolidColorBrush x:Key="AppGlassBrush" Color="#66101824"/>
+      <SolidColorBrush x:Key="AppGlassBorderBrush" Color="#33FFFFFF"/>
+      <SolidColorBrush x:Key="AppSideRailBrush" Color="#CC0D1522"/>
+      <SolidColorBrush x:Key="AppTopBarBrush" Color="#990D1522"/>
+      <SolidColorBrush x:Key="AppContentHostBrush" Color="#66091018"/>
+      <SolidColorBrush x:Key="AppStatCardBrush" Color="#B3121C2A"/>
+      <SolidColorBrush x:Key="AppUserChipBrush" Color="#33182233"/>
+      <SolidColorBrush x:Key="AppInputBrush" Color="#33101824"/>
+      <SolidColorBrush x:Key="AppInputFocusBrush" Color="#40101824"/>
+      <SolidColorBrush x:Key="AppInputBorderBrush" Color="#3340E8D0"/>
+      <SolidColorBrush x:Key="AppGhostBrush" Color="#221E2C3C"/>
+      <SolidColorBrush x:Key="AppGhostHoverBrush" Color="#33263A50"/>
+      <SolidColorBrush x:Key="AppNavHoverBrush" Color="#281E2C3C"/>
+      <SolidColorBrush x:Key="AppNavActiveBrush" Color="#3320D4BE"/>
+      <SolidColorBrush x:Key="AppTagBrush" Color="#1A2A3D"/>
+      <SolidColorBrush x:Key="AppShadowBrush" Color="#66000000"/>
+      <BoxShadows x:Key="AppGlassShadow">0 18 48 0 #66000000</BoxShadows>
+      <BoxShadows x:Key="AppGlowShadow">0 0 28 0 #6640E8D0</BoxShadows>
+      <BoxShadows x:Key="AppSideShadow">0 12 36 0 #55000000</BoxShadows>
+      <BoxShadows x:Key="AppHeroShadow">0 14 40 0 #55000000</BoxShadows>
+    </ResourceDictionary>
+
+    <!-- Snow Light：白色明亮风格 -->
+    <ResourceDictionary x:Key="Light">
+      <LinearGradientBrush x:Key="AppWindowBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#F7FAFD" Offset="0"/>
+        <GradientStop Color="#EEF3F8" Offset="0.55"/>
+        <GradientStop Color="#E7F2EE" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppLoginBackgroundBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#F8FBFE" Offset="0"/>
+        <GradientStop Color="#EEF4FA" Offset="0.45"/>
+        <GradientStop Color="#E8F4F0" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppHeroBannerBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#E8F7F4" Offset="0"/>
+        <GradientStop Color="#EAF1FB" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppAccentGradientBrush" StartPoint="0%,0%" EndPoint="100%,100%">
+        <GradientStop Color="#14B8A6" Offset="0"/>
+        <GradientStop Color="#E2A93B" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppCtaGradientBrush" StartPoint="0%,0%" EndPoint="100%,0%">
+        <GradientStop Color="#14B8A6" Offset="0"/>
+        <GradientStop Color="#E2A93B" Offset="1"/>
+      </LinearGradientBrush>
+      <LinearGradientBrush x:Key="AppDividerBrush" StartPoint="0%,0%" EndPoint="0%,100%">
+        <GradientStop Color="#0014B8A6" Offset="0"/>
+        <GradientStop Color="#8814B8A6" Offset="0.5"/>
+        <GradientStop Color="#0014B8A6" Offset="1"/>
+      </LinearGradientBrush>
+      <RadialGradientBrush x:Key="AppGlowTealBrush">
+        <GradientStop Color="#3314B8A6" Offset="0"/>
+        <GradientStop Color="#0014B8A6" Offset="1"/>
+      </RadialGradientBrush>
+      <RadialGradientBrush x:Key="AppGlowAmberBrush">
+        <GradientStop Color="#40E2A93B" Offset="0"/>
+        <GradientStop Color="#00E2A93B" Offset="1"/>
+      </RadialGradientBrush>
+      <RadialGradientBrush x:Key="AppGlowBlueBrush">
+        <GradientStop Color="#332B7DE9" Offset="0"/>
+        <GradientStop Color="#002B7DE9" Offset="1"/>
+      </RadialGradientBrush>
+
+      <SolidColorBrush x:Key="AppPrimaryTextBrush" Color="#142033"/>
+      <SolidColorBrush x:Key="AppSecondaryTextBrush" Color="#243247"/>
+      <SolidColorBrush x:Key="AppMutedTextBrush" Color="#5F738C"/>
+      <SolidColorBrush x:Key="AppBodyTextBrush" Color="#334155"/>
+      <SolidColorBrush x:Key="AppAccentBrush" Color="#0F9F8F"/>
+      <SolidColorBrush x:Key="AppAccentSoftBrush" Color="#2614B8A6"/>
+      <SolidColorBrush x:Key="AppOnAccentBrush" Color="#FFFFFF"/>
+      <SolidColorBrush x:Key="AppDangerBrush" Color="#D64545"/>
+      <SolidColorBrush x:Key="AppTitleBarBrush" Color="#E6FFFFFF"/>
+      <SolidColorBrush x:Key="AppTitleBarBorderBrush" Color="#22000000"/>
+      <SolidColorBrush x:Key="AppGlassBrush" Color="#D9FFFFFF"/>
+      <SolidColorBrush x:Key="AppGlassBorderBrush" Color="#22000000"/>
+      <SolidColorBrush x:Key="AppSideRailBrush" Color="#F2FFFFFF"/>
+      <SolidColorBrush x:Key="AppTopBarBrush" Color="#E8FFFFFF"/>
+      <SolidColorBrush x:Key="AppContentHostBrush" Color="#CCFFFFFF"/>
+      <SolidColorBrush x:Key="AppStatCardBrush" Color="#F7FFFFFF"/>
+      <SolidColorBrush x:Key="AppUserChipBrush" Color="#F0F5FA"/>
+      <SolidColorBrush x:Key="AppInputBrush" Color="#F4F7FB"/>
+      <SolidColorBrush x:Key="AppInputFocusBrush" Color="#FFFFFF"/>
+      <SolidColorBrush x:Key="AppInputBorderBrush" Color="#6614B8A6"/>
+      <SolidColorBrush x:Key="AppGhostBrush" Color="#F0F4F8"/>
+      <SolidColorBrush x:Key="AppGhostHoverBrush" Color="#E4EBF2"/>
+      <SolidColorBrush x:Key="AppNavHoverBrush" Color="#EAF2F6"/>
+      <SolidColorBrush x:Key="AppNavActiveBrush" Color="#D7F3EF"/>
+      <SolidColorBrush x:Key="AppTagBrush" Color="#E6F4F1"/>
+      <SolidColorBrush x:Key="AppShadowBrush" Color="#1A000000"/>
+      <BoxShadows x:Key="AppGlassShadow">0 14 36 0 #14000000</BoxShadows>
+      <BoxShadows x:Key="AppGlowShadow">0 0 24 0 #3314B8A6</BoxShadows>
+      <BoxShadows x:Key="AppSideShadow">0 10 28 0 #12000000</BoxShadows>
+      <BoxShadows x:Key="AppHeroShadow">0 12 30 0 #12000000</BoxShadows>
+    </ResourceDictionary>
+
+  </ResourceDictionary.ThemeDictionaries>
+</ResourceDictionary>

@@ -1,0 +1,68 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUse.ViewModels"
+             x:Class="AvaloniaUse.Views.HomeView"
+             x:DataType="vm:HomeViewModel">
+
+  <ScrollViewer>
+    <StackPanel Spacing="22" Margin="8">
+      <Border Classes="hero-banner" Padding="28">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="10">
+            <TextBlock Text="首页" Classes="section-eyebrow"/>
+            <TextBlock Text="{Binding WelcomeTitle}" Classes="section-title"/>
+            <TextBlock Text="{Binding WelcomeSubtitle}" Classes="muted-text"/>
+            <TextBlock Text="{Binding TodayFocus}" Classes="body-text" Margin="0,8,0,0" MaxWidth="620" TextWrapping="Wrap"/>
+          </StackPanel>
+
+          <Border Grid.Column="1" Width="120" Height="120" CornerRadius="28" Classes="orbit-badge"
+                  Background="{DynamicResource AppAccentGradientBrush}">
+            <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center" Spacing="2">
+              <TextBlock Text="LIVE" Classes="on-accent-text" FontWeight="Bold" FontSize="18" HorizontalAlignment="Center"/>
+              <TextBlock Text="SESSION" Classes="on-accent-text" FontSize="11" Opacity="0.8" HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+      </Border>
+
+      <ItemsControl ItemsSource="{Binding Stats}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Columns="4"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:StatCard">
+            <Border Classes="stat-card" Margin="0,0,12,0" Padding="18">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding Title}" Classes="muted-text"/>
+                <TextBlock Text="{Binding Value}" FontSize="28" FontWeight="Bold" Classes="primary-text"/>
+                <TextBlock Text="{Binding Hint}" Classes="muted-text" FontSize="12"/>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Border Classes="glass-panel" Padding="22">
+        <StackPanel Spacing="14">
+          <TextBlock Text="动态" Classes="section-title" FontSize="20"/>
+          <ItemsControl ItemsSource="{Binding Activities}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ActivityItem">
+                <Grid ColumnDefinitions="120,*,120" Margin="0,0,0,12">
+                  <Border Classes="tag-chip" HorizontalAlignment="Left">
+                    <TextBlock Text="{Binding Category}" Classes="accent-text" FontSize="12"/>
+                  </Border>
+                  <TextBlock Grid.Column="1" Text="{Binding Title}" VerticalAlignment="Center" Classes="secondary-text"/>
+                  <TextBlock Grid.Column="2" Text="{Binding Time}" HorizontalAlignment="Right"
+                             VerticalAlignment="Center" Classes="muted-text"/>
+                </Grid>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

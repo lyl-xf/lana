@@ -1,0 +1,235 @@
+<Application xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             x:Class="AvaloniaUse.App"
+             xmlns:local="using:AvaloniaUse"
+             RequestedThemeVariant="Dark">
+
+  <Application.DataTemplates>
+    <local:ViewLocator />
+  </Application.DataTemplates>
+
+  <Application.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.MergedDictionaries>
+        <ResourceInclude Source="avares://AvaloniaUse/Themes/AppTheme.axaml"/>
+      </ResourceDictionary.MergedDictionaries>
+    </ResourceDictionary>
+  </Application.Resources>
+
+  <Application.Styles>
+    <FluentTheme />
+
+    <Style Selector="TextBlock.brand-mark">
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="LetterSpacing" Value="3"/>
+    </Style>
+
+    <Style Selector="TextBlock.hero-title">
+      <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}"/>
+      <Setter Property="FontSize" Value="42"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="LineHeight" Value="50"/>
+    </Style>
+
+    <Style Selector="TextBlock.hero-subtitle">
+      <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}"/>
+      <Setter Property="FontSize" Value="15"/>
+      <Setter Property="LineHeight" Value="24"/>
+    </Style>
+
+    <Style Selector="TextBlock.field-label">
+      <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}"/>
+      <Setter Property="FontSize" Value="12"/>
+    </Style>
+
+    <Style Selector="TextBlock.section-eyebrow">
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="LetterSpacing" Value="1.5"/>
+    </Style>
+
+    <Style Selector="TextBlock.section-title">
+      <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}"/>
+      <Setter Property="FontSize" Value="28"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="TextBlock.muted-text">
+      <Setter Property="Foreground" Value="{DynamicResource AppMutedTextBrush}"/>
+    </Style>
+
+    <Style Selector="TextBlock.body-text">
+      <Setter Property="Foreground" Value="{DynamicResource AppBodyTextBrush}"/>
+      <Setter Property="FontSize" Value="14"/>
+      <Setter Property="LineHeight" Value="22"/>
+    </Style>
+
+    <Style Selector="TextBlock.primary-text">
+      <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}"/>
+    </Style>
+
+    <Style Selector="TextBlock.secondary-text">
+      <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}"/>
+    </Style>
+
+    <Style Selector="TextBlock.accent-text">
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+    </Style>
+
+    <Style Selector="TextBlock.on-accent-text">
+      <Setter Property="Foreground" Value="{DynamicResource AppOnAccentBrush}"/>
+    </Style>
+
+    <Style Selector="Border.glass-panel">
+      <Setter Property="Background" Value="{DynamicResource AppGlassBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="24"/>
+      <Setter Property="BoxShadow" Value="{DynamicResource AppGlassShadow}"/>
+    </Style>
+
+    <Style Selector="Border.glow-card">
+      <Setter Property="BoxShadow" Value="{DynamicResource AppGlowShadow}"/>
+    </Style>
+
+    <Style Selector="Border.side-rail">
+      <Setter Property="Background" Value="{DynamicResource AppSideRailBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="BoxShadow" Value="{DynamicResource AppSideShadow}"/>
+    </Style>
+
+    <Style Selector="Border.top-bar">
+      <Setter Property="Background" Value="{DynamicResource AppTopBarBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style Selector="Border.content-host">
+      <Setter Property="Background" Value="{DynamicResource AppContentHostBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style Selector="Border.hero-banner">
+      <Setter Property="CornerRadius" Value="22"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Background" Value="{DynamicResource AppHeroBannerBrush}"/>
+      <Setter Property="BoxShadow" Value="{DynamicResource AppHeroShadow}"/>
+    </Style>
+
+    <Style Selector="Border.stat-card">
+      <Setter Property="Background" Value="{DynamicResource AppStatCardBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="18"/>
+    </Style>
+
+    <Style Selector="Border.user-chip">
+      <Setter Property="Background" Value="{DynamicResource AppUserChipBrush}"/>
+      <Setter Property="CornerRadius" Value="16"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+    </Style>
+
+    <Style Selector="Border.live-pill">
+      <Setter Property="CornerRadius" Value="999"/>
+      <Setter Property="Background" Value="{DynamicResource AppCtaGradientBrush}"/>
+    </Style>
+
+    <Style Selector="Border.orbit-badge">
+      <Setter Property="BoxShadow" Value="{DynamicResource AppGlowShadow}"/>
+    </Style>
+
+    <Style Selector="Border.theme-card">
+      <Setter Property="Background" Value="{DynamicResource AppStatCardBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="18"/>
+      <Setter Property="Padding" Value="16"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style Selector="Border.theme-card.theme-selected">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="2"/>
+      <Setter Property="Background" Value="{DynamicResource AppNavActiveBrush}"/>
+    </Style>
+
+    <Style Selector="Border.tag-chip">
+      <Setter Property="Background" Value="{DynamicResource AppTagBrush}"/>
+      <Setter Property="CornerRadius" Value="8"/>
+      <Setter Property="Padding" Value="8,4"/>
+    </Style>
+
+    <Style Selector="TextBox.neon-input">
+      <Setter Property="Background" Value="{DynamicResource AppInputBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource AppPrimaryTextBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppInputBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="12"/>
+      <Setter Property="Padding" Value="14,12"/>
+      <Setter Property="CaretBrush" Value="{DynamicResource AppAccentBrush}"/>
+    </Style>
+
+    <Style Selector="TextBox.neon-input:focus">
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource AppInputFocusBrush}"/>
+    </Style>
+
+    <Style Selector="Button.cta-button">
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="Padding" Value="16,14"/>
+      <Setter Property="CornerRadius" Value="14"/>
+      <Setter Property="Foreground" Value="{DynamicResource AppOnAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Background" Value="{DynamicResource AppCtaGradientBrush}"/>
+    </Style>
+
+    <Style Selector="Button.cta-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Opacity" Value="0.92"/>
+    </Style>
+
+    <Style Selector="Button.cta-button:disabled">
+      <Setter Property="Opacity" Value="0.65"/>
+    </Style>
+
+    <Style Selector="Button.nav-button">
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="Padding" Value="14,12"/>
+      <Setter Property="CornerRadius" Value="12"/>
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="{DynamicResource AppBodyTextBrush}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+    </Style>
+
+    <Style Selector="Button.nav-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppNavHoverBrush}"/>
+    </Style>
+
+    <Style Selector="Button.nav-button.nav-active">
+      <Setter Property="Background" Value="{DynamicResource AppNavActiveBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+    </Style>
+
+    <Style Selector="Button.ghost-button">
+      <Setter Property="Background" Value="{DynamicResource AppGhostBrush}"/>
+      <Setter Property="Foreground" Value="{DynamicResource AppSecondaryTextBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppGlassBorderBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="CornerRadius" Value="12"/>
+      <Setter Property="Padding" Value="12,8"/>
+    </Style>
+
+    <Style Selector="Button.ghost-button:pointerover /template/ ContentPresenter#PART_ContentPresenter">
+      <Setter Property="Background" Value="{DynamicResource AppGhostHoverBrush}"/>
+    </Style>
+  </Application.Styles>
+</Application>

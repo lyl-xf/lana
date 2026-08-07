@@ -1,0 +1,145 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUse.ViewModels"
+             x:Class="AvaloniaUse.Views.ShellView"
+             x:DataType="vm:ShellViewModel">
+
+  <DockPanel>
+    <!-- 左侧菜单：可整体收起 -->
+    <Border DockPanel.Dock="Left"
+            Classes="side-rail"
+            Width="240"
+            Margin="12"
+            Padding="16"
+            CornerRadius="22"
+            IsVisible="{Binding IsSidebarExpanded}">
+      <DockPanel>
+        <StackPanel DockPanel.Dock="Top" Spacing="18">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="40" Height="40" CornerRadius="12"
+                      Background="{DynamicResource AppAccentGradientBrush}">
+                <TextBlock Text="AU" FontWeight="Bold" Classes="on-accent-text"
+                           HorizontalAlignment="Center" VerticalAlignment="Center"/>
+              </Border>
+              <StackPanel VerticalAlignment="Center" Spacing="2">
+                <TextBlock Text="AvaloniaUse" FontWeight="SemiBold" Classes="primary-text"/>
+                <TextBlock Text="Workspace" Classes="muted-text" FontSize="11"/>
+              </StackPanel>
+            </StackPanel>
+
+            <Button Grid.Column="1"
+                    Classes="ghost-button"
+                    Padding="8,6"
+                    ToolTip.Tip="收起菜单"
+                    Command="{Binding ToggleSidebarCommand}"
+                    VerticalAlignment="Center">
+              <TextBlock Text="⟨" FontSize="14" FontWeight="Bold"/>
+            </Button>
+          </Grid>
+
+          <StackPanel Spacing="8" Margin="0,12,0,0">
+            <Button Classes="nav-button"
+                    Command="{Binding NavigateHomeCommand}"
+                    Classes.nav-active="{Binding IsHomeSelected}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="⌂" FontSize="16" Width="20"/>
+                <TextBlock Text="首页"/>
+              </StackPanel>
+            </Button>
+
+            <Button Classes="nav-button"
+                    Command="{Binding NavigateProjectsCommand}"
+                    Classes.nav-active="{Binding IsProjectsSelected}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="▦" FontSize="16" Width="20"/>
+                <TextBlock Text="项目"/>
+              </StackPanel>
+            </Button>
+
+            <Button Classes="nav-button"
+                    Command="{Binding NavigateMessagesCommand}"
+                    Classes.nav-active="{Binding IsMessagesSelected}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="✉" FontSize="16" Width="20"/>
+                <TextBlock Text="消息"/>
+              </StackPanel>
+            </Button>
+
+            <Button Classes="nav-button"
+                    Command="{Binding NavigateAnalyticsCommand}"
+                    Classes.nav-active="{Binding IsAnalyticsSelected}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="▣" FontSize="16" Width="20"/>
+                <TextBlock Text="数据"/>
+              </StackPanel>
+            </Button>
+
+            <Button Classes="nav-button"
+                    Command="{Binding NavigateAboutCommand}"
+                    Classes.nav-active="{Binding IsAboutSelected}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="ⓘ" FontSize="16" Width="20"/>
+                <TextBlock Text="关于"/>
+              </StackPanel>
+            </Button>
+
+            <Button Classes="nav-button"
+                    Command="{Binding NavigateSettingsCommand}"
+                    Classes.nav-active="{Binding IsSettingsSelected}">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="⚙" FontSize="16" Width="20"/>
+                <TextBlock Text="设置"/>
+              </StackPanel>
+            </Button>
+          </StackPanel>
+        </StackPanel>
+
+        <Border DockPanel.Dock="Bottom" Classes="user-chip" Padding="12" Margin="0,16,0,0"
+                VerticalAlignment="Bottom">
+          <StackPanel Spacing="10">
+            <StackPanel Spacing="2">
+              <TextBlock Text="{Binding UserDisplayName}" Classes="primary-text" FontWeight="SemiBold"/>
+              <TextBlock Text="{Binding UserRole}" Classes="muted-text" FontSize="12"/>
+            </StackPanel>
+            <Button Content="退出登录" Classes="ghost-button" Command="{Binding LogoutCommand}"
+                    HorizontalAlignment="Stretch"/>
+          </StackPanel>
+        </Border>
+
+        <Panel/>
+      </DockPanel>
+    </Border>
+
+    <!-- 右侧内容区 -->
+    <Grid RowDefinitions="Auto,*" Margin="0,12,12,12">
+      <Border Classes="top-bar" Padding="14,12" CornerRadius="18" Margin="0,0,0,12">
+        <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="12">
+          <Button Classes="ghost-button"
+                  Padding="12,8"
+                  Command="{Binding ToggleSidebarCommand}"
+                  VerticalAlignment="Center">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+              <TextBlock Text="☰" FontSize="14"/>
+              <TextBlock Text="{Binding SidebarToggleText}" FontSize="13"/>
+            </StackPanel>
+          </Button>
+
+          <StackPanel Grid.Column="1" Spacing="2" VerticalAlignment="Center">
+            <TextBlock Text="控制台" Classes="section-eyebrow"/>
+            <TextBlock Text="{Binding CurrentPageTitle}" Classes="secondary-text" FontSize="16"/>
+          </StackPanel>
+
+          <Border Grid.Column="2" Classes="live-pill" Padding="12,6" VerticalAlignment="Center">
+            <TextBlock Text="{Binding ThemeDisplayName}" Classes="on-accent-text"
+                       FontWeight="SemiBold" FontSize="12"/>
+          </Border>
+        </Grid>
+      </Border>
+
+      <Border Grid.Row="1" Classes="content-host" Padding="18" CornerRadius="22">
+        <ContentControl Content="{Binding CurrentPage}"/>
+      </Border>
+    </Grid>
+  </DockPanel>
+</UserControl>

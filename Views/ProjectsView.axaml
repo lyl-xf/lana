@@ -1,0 +1,40 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUse.ViewModels"
+             x:Class="AvaloniaUse.Views.ProjectsView"
+             x:DataType="vm:ProjectsViewModel">
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="18" Margin="8">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding Title}" Classes="section-title"/>
+        <TextBlock Text="{Binding Subtitle}" Classes="muted-text"/>
+      </StackPanel>
+
+      <ItemsControl ItemsSource="{Binding Projects}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <StackPanel Spacing="12"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ProjectItem">
+            <Border Classes="glass-panel" Padding="18">
+              <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto,Auto" RowSpacing="8">
+                <TextBlock Text="{Binding Name}" Classes="primary-text" FontSize="18" FontWeight="SemiBold"/>
+                <Border Grid.Column="1" Classes="tag-chip">
+                  <TextBlock Text="{Binding Status}" Classes="accent-text" FontSize="12"/>
+                </Border>
+                <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Text="{Binding Description}" Classes="muted-text"/>
+                <StackPanel Grid.Row="2" Grid.ColumnSpan="2" Orientation="Horizontal" Spacing="10">
+                  <TextBlock Text="进度" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBlock Text="{Binding Progress}" Classes="secondary-text" FontWeight="SemiBold"/>
+                </StackPanel>
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

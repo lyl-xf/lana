@@ -1,0 +1,99 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUse.ViewModels"
+             x:Class="AvaloniaUse.Views.LoginView"
+             x:DataType="vm:LoginViewModel">
+
+  <Grid>
+    <Grid Background="{DynamicResource AppLoginBackgroundBrush}">
+      <Ellipse Width="420" Height="420" Margin="-80,-120,0,0"
+               HorizontalAlignment="Left" VerticalAlignment="Top" Opacity="0.55"
+               Fill="{DynamicResource AppGlowTealBrush}"/>
+      <Ellipse Width="380" Height="380" Margin="0,-40,-100,0"
+               HorizontalAlignment="Right" VerticalAlignment="Top" Opacity="0.4"
+               Fill="{DynamicResource AppGlowAmberBrush}"/>
+      <Ellipse Width="520" Height="280" Margin="0,0,-40,-80"
+               HorizontalAlignment="Right" VerticalAlignment="Bottom" Opacity="0.35"
+               Fill="{DynamicResource AppGlowBlueBrush}"/>
+    </Grid>
+
+    <Grid ColumnDefinitions="*,Auto,*">
+      <Border Grid.Column="0" Padding="56,40">
+        <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                    Spacing="20" MaxWidth="420">
+          <Border Width="64" Height="64" CornerRadius="18" Classes="glow-card"
+                  HorizontalAlignment="Left"
+                  Background="{DynamicResource AppAccentGradientBrush}">
+            <TextBlock Text="AU" FontSize="24" FontWeight="Bold" Classes="on-accent-text"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+
+          <TextBlock Text="AVALONIA USE" Classes="brand-mark" HorizontalAlignment="Left"/>
+          <TextBlock Text="跨平台桌面体验" Classes="hero-title" TextWrapping="Wrap"/>
+          <TextBlock Text="一套代码，覆盖 Windows / Linux / macOS。登录后进入沉浸式工作台，数据由本地 SQLite 持久化。"
+                     Classes="hero-subtitle" TextWrapping="Wrap"/>
+
+          <StackPanel Spacing="12" Margin="0,12,0,0">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="8" Height="8" CornerRadius="4" Background="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+              <TextBlock Text=".NET 9 原生性能" Classes="muted-text" FontSize="14"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="8" Height="8" CornerRadius="4" Background="#F0B429" VerticalAlignment="Center"/>
+              <TextBlock Text="Avalonia 跨平台 UI" Classes="muted-text" FontSize="14"/>
+            </StackPanel>
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <Border Width="8" Height="8" CornerRadius="4" Background="#22A6F2" VerticalAlignment="Center"/>
+              <TextBlock Text="SQLite 本地数据存储" Classes="muted-text" FontSize="14"/>
+            </StackPanel>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <Border Grid.Column="1" Width="1" Margin="0,64"
+              VerticalAlignment="Stretch" Opacity="0.55"
+              Background="{DynamicResource AppDividerBrush}"/>
+
+      <Border Grid.Column="2" Padding="56,40">
+        <Border Classes="glass-panel" Padding="36" VerticalAlignment="Center"
+                HorizontalAlignment="Center" Width="420" MinHeight="480">
+          <StackPanel Spacing="18" VerticalAlignment="Center">
+            <TextBlock Text="欢迎登录" FontSize="28" FontWeight="SemiBold" Classes="primary-text"/>
+            <TextBlock Text="演示账号：admin / 123456 或 demo / demo" Classes="muted-text" FontSize="13"/>
+
+            <StackPanel Spacing="8" Margin="0,12,0,0">
+              <TextBlock Text="用户名" Classes="field-label"/>
+              <TextBox Text="{Binding Username}" PlaceholderText="输入用户名" Classes="neon-input"/>
+            </StackPanel>
+
+            <StackPanel Spacing="8">
+              <TextBlock Text="密码" Classes="field-label"/>
+              <TextBox Text="{Binding Password}" PasswordChar="●"
+                       PlaceholderText="输入密码" Classes="neon-input"/>
+            </StackPanel>
+
+            <TextBlock Text="{Binding ErrorMessage}"
+                       Foreground="{DynamicResource AppDangerBrush}"
+                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       TextWrapping="Wrap"/>
+
+            <Button Classes="cta-button"
+                    Command="{Binding LoginCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    Margin="0,8,0,0">
+              <Panel>
+                <TextBlock Text="进入工作台" IsVisible="{Binding !IsBusy}"
+                           HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                <TextBlock Text="验证中..." IsVisible="{Binding IsBusy}"
+                           HorizontalAlignment="Center" FontWeight="SemiBold"/>
+              </Panel>
+            </Button>
+
+            <TextBlock Text=".NET 9 · Avalonia 12 · SQLite"
+                       Classes="muted-text" FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+          </StackPanel>
+        </Border>
+      </Border>
+    </Grid>
+  </Grid>
+</UserControl>

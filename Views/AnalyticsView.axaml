@@ -1,0 +1,60 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUse.ViewModels"
+             x:Class="AvaloniaUse.Views.AnalyticsView"
+             x:DataType="vm:AnalyticsViewModel">
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="18" Margin="8">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding Title}" Classes="section-title"/>
+        <TextBlock Text="{Binding Subtitle}" Classes="muted-text"/>
+      </StackPanel>
+
+      <ItemsControl ItemsSource="{Binding Metrics}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <UniformGrid Columns="4"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:MetricItem">
+            <Border Classes="stat-card" Margin="0,0,12,0" Padding="18">
+              <StackPanel Spacing="8">
+                <TextBlock Text="{Binding Name}" Classes="muted-text"/>
+                <TextBlock Text="{Binding Value}" FontSize="28" FontWeight="Bold" Classes="primary-text"/>
+                <TextBlock Text="{Binding Hint}" Classes="accent-text" FontSize="12"/>
+              </StackPanel>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <Border Classes="glass-panel" Padding="22">
+        <StackPanel Spacing="14">
+          <TextBlock Text="本周趋势" Classes="section-title" FontSize="20"/>
+          <ItemsControl ItemsSource="{Binding Trends}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <UniformGrid Columns="7" Height="160"/>
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:TrendItem">
+                <DockPanel Margin="6,0">
+                  <TextBlock DockPanel.Dock="Bottom" Text="{Binding Day}" Classes="muted-text"
+                             FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0"/>
+                  <Border VerticalAlignment="Bottom"
+                          Height="{Binding Value}"
+                          CornerRadius="10,10,4,4"
+                          Background="{DynamicResource AppAccentGradientBrush}"
+                          Opacity="0.9"/>
+                </DockPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

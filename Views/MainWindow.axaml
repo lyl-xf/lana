@@ -1,0 +1,77 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AvaloniaUse.ViewModels"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        mc:Ignorable="d" d:DesignWidth="1280" d:DesignHeight="800"
+        x:Class="AvaloniaUse.Views.MainWindow"
+        x:DataType="vm:MainViewModel"
+        Icon="/Assets/avalonia-logo.ico"
+        Title="AvaloniaUse"
+        Width="1280"
+        Height="800"
+        MinWidth="980"
+        MinHeight="640"
+        TransparencyLevelHint="AcrylicBlur"
+        Background="{DynamicResource AppWindowBackgroundBrush}"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaTitleBarHeightHint="40"
+        WindowDecorations="Full">
+
+  <Design.DataContext>
+    <vm:MainViewModel />
+  </Design.DataContext>
+
+  <Window.Styles>
+    <!-- 去掉阴影内边距，让标题按钮尽量靠右 -->
+    <Style Selector="WindowDrawnDecorations">
+      <Setter Property="ShadowThickness" Value="0"/>
+    </Style>
+    <Style Selector="WindowDrawnDecorations /template/ Panel#PART_OverlayWrapper">
+      <Setter Property="Margin" Value="0"/>
+    </Style>
+    <!-- 三个功能按钮尽量贴右，仅留很小间隙 -->
+    <Style Selector="WindowDrawnDecorations /template/ StackPanel#PART_OverlayPanel">
+      <Setter Property="Margin" Value="0,0,8,0"/>
+      <Setter Property="HorizontalAlignment" Value="Right"/>
+    </Style>
+    <Style Selector="WindowDrawnDecorations /template/ Panel#PART_UnderlayWrapper">
+      <Setter Property="Margin" Value="0"/>
+    </Style>
+    <Style Selector="WindowDrawnDecorations /template/ Panel#PART_TitleTextPanel">
+      <Setter Property="IsVisible" Value="False"/>
+    </Style>
+    <Style Selector="WindowDrawnDecorations /template/ Button#PART_FullScreenButton">
+      <Setter Property="IsVisible" Value="False"/>
+      <Setter Property="Width" Value="0"/>
+      <Setter Property="MinWidth" Value="0"/>
+      <Setter Property="Margin" Value="0"/>
+      <Setter Property="Padding" Value="0"/>
+    </Style>
+    <Style Selector="WindowDrawnDecorations /template/ TextBlock">
+      <Setter Property="IsVisible" Value="False"/>
+    </Style>
+  </Window.Styles>
+
+  <Grid RowDefinitions="40,*" Background="{DynamicResource AppWindowBackgroundBrush}">
+    <Border Grid.Row="0"
+            Background="{DynamicResource AppTitleBarBrush}"
+            BorderBrush="{DynamicResource AppTitleBarBorderBrush}"
+            BorderThickness="0,0,0,1"
+            WindowDecorationProperties.ElementRole="TitleBar"
+            Padding="14,0,180,0">
+      <StackPanel Orientation="Horizontal" Spacing="10" VerticalAlignment="Center"
+                  HorizontalAlignment="Left">
+        <Border Width="18" Height="18" CornerRadius="5"
+                Background="{DynamicResource AppAccentGradientBrush}"/>
+        <TextBlock Text="AvaloniaUse"
+                   Classes="secondary-text"
+                   FontSize="13"
+                   FontWeight="SemiBold"
+                   VerticalAlignment="Center"/>
+      </StackPanel>
+    </Border>
+
+    <ContentControl Grid.Row="1" Content="{Binding CurrentViewModel}"/>
+  </Grid>
+</Window>

@@ -1,0 +1,42 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUse.ViewModels"
+             x:Class="AvaloniaUse.Views.MessagesView"
+             x:DataType="vm:MessagesViewModel">
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="18" Margin="8">
+      <StackPanel Spacing="4">
+        <TextBlock Text="{Binding Title}" Classes="section-title"/>
+        <TextBlock Text="{Binding Subtitle}" Classes="muted-text"/>
+      </StackPanel>
+
+      <Border Classes="glass-panel" Padding="8">
+        <ItemsControl ItemsSource="{Binding Messages}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:MessageItem">
+              <Border Padding="14,12" Margin="4"
+                      Background="{DynamicResource AppStatCardBrush}"
+                      CornerRadius="14"
+                      BorderBrush="{DynamicResource AppGlassBorderBrush}"
+                      BorderThickness="1">
+                <Grid ColumnDefinitions="100,*,120">
+                  <Border Classes="tag-chip" HorizontalAlignment="Left" VerticalAlignment="Center">
+                    <TextBlock Text="{Binding Category}" Classes="accent-text" FontSize="12"/>
+                  </Border>
+                  <StackPanel Grid.Column="1" Spacing="4" Margin="12,0">
+                    <TextBlock Text="{Binding Content}" Classes="secondary-text" TextWrapping="Wrap"/>
+                    <TextBlock Text="未读" Classes="accent-text" FontSize="11"
+                               IsVisible="{Binding Unread}"/>
+                  </StackPanel>
+                  <TextBlock Grid.Column="2" Text="{Binding Time}" Classes="muted-text"
+                             HorizontalAlignment="Right" VerticalAlignment="Center"/>
+                </Grid>
+              </Border>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

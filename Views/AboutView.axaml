@@ -1,0 +1,56 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AvaloniaUse.ViewModels"
+             x:Class="AvaloniaUse.Views.AboutView"
+             x:DataType="vm:AboutViewModel">
+
+  <ScrollViewer HorizontalScrollBarVisibility="Disabled">
+    <StackPanel Spacing="18" Margin="8" MaxWidth="760" HorizontalAlignment="Center">
+      <Border Classes="glass-panel" Padding="28">
+        <StackPanel Spacing="16" HorizontalAlignment="Center">
+          <Border Width="72" Height="72" CornerRadius="20"
+                  Background="{DynamicResource AppAccentGradientBrush}"
+                  HorizontalAlignment="Center">
+            <TextBlock Text="AU" FontSize="28" FontWeight="Bold" Classes="on-accent-text"
+                       HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          </Border>
+          <TextBlock Text="{Binding Title}" Classes="section-title" HorizontalAlignment="Center"/>
+          <TextBlock Text="{Binding Subtitle}" Classes="muted-text" HorizontalAlignment="Center"/>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="glass-panel" Padding="22">
+        <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto" RowSpacing="12">
+          <TextBlock Text="版本" Classes="field-label"/>
+          <TextBlock Grid.Column="1" Text="{Binding Version}" Classes="secondary-text"/>
+
+          <TextBlock Grid.Row="1" Text="运行时" Classes="field-label"/>
+          <TextBlock Grid.Row="1" Grid.Column="1" Text="{Binding Runtime}" Classes="secondary-text"/>
+
+          <TextBlock Grid.Row="2" Text="UI 框架" Classes="field-label"/>
+          <TextBlock Grid.Row="2" Grid.Column="1" Text="{Binding UiFramework}" Classes="secondary-text"/>
+
+          <TextBlock Grid.Row="3" Text="数据库" Classes="field-label"/>
+          <TextBlock Grid.Row="3" Grid.Column="1" Text="{Binding Database}" Classes="secondary-text"/>
+        </Grid>
+      </Border>
+
+      <Border Classes="glass-panel" Padding="22">
+        <StackPanel Spacing="12">
+          <TextBlock Text="已包含能力" FontSize="18" FontWeight="SemiBold" Classes="primary-text"/>
+          <ItemsControl ItemsSource="{Binding Features}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="x:String">
+                <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,0,0,8">
+                  <Border Width="8" Height="8" CornerRadius="4"
+                          Background="{DynamicResource AppAccentBrush}" VerticalAlignment="Center"/>
+                  <TextBlock Text="{Binding}" Classes="secondary-text"/>
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>
