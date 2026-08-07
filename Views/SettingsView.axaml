@@ -31,6 +31,51 @@
       <Border Classes="glass-panel" Padding="22">
         <StackPanel Spacing="16">
           <StackPanel Spacing="4">
+            <TextBlock Text="修改密码" FontSize="18" FontWeight="SemiBold" Classes="primary-text"/>
+            <TextBlock Text="验证当前密码后设置新密码，立刻写入本地 SQLite" Classes="muted-text" FontSize="12"/>
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <TextBlock Text="当前密码" Classes="field-label"/>
+            <TextBox Text="{Binding CurrentPassword}" PasswordChar="●"
+                     PlaceholderText="输入当前密码" Classes="neon-input"/>
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <TextBlock Text="新密码" Classes="field-label"/>
+            <TextBox Text="{Binding NewPassword}" PasswordChar="●"
+                     PlaceholderText="至少 4 位" Classes="neon-input"/>
+          </StackPanel>
+
+          <StackPanel Spacing="8">
+            <TextBlock Text="确认新密码" Classes="field-label"/>
+            <TextBox Text="{Binding ConfirmNewPassword}" PasswordChar="●"
+                     PlaceholderText="再次输入新密码" Classes="neon-input"/>
+          </StackPanel>
+
+          <TextBlock Text="{Binding PasswordMessage}"
+                     Classes="accent-text"
+                     FontSize="13"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding HasPasswordSuccess}"/>
+          <TextBlock Text="{Binding PasswordMessage}"
+                     Foreground="{DynamicResource AppDangerBrush}"
+                     FontSize="13"
+                     TextWrapping="Wrap"
+                     IsVisible="{Binding HasPasswordError}"/>
+
+          <Button Classes="ghost-button"
+                  Content="更新密码"
+                  Command="{Binding ChangePasswordCommand}"
+                  IsEnabled="{Binding !IsChangingPassword}"
+                  HorizontalAlignment="Left"
+                  Padding="16,8"/>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="glass-panel" Padding="22">
+        <StackPanel Spacing="16">
+          <StackPanel Spacing="4">
             <TextBlock Text="主题风格" FontSize="18" FontWeight="SemiBold" Classes="primary-text"/>
             <TextBlock Text="选择 Aurora 深色或 Snow 白色，立即生效并保存到 SQLite" Classes="muted-text" FontSize="12"/>
           </StackPanel>

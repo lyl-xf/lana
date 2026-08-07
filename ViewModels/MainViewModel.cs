@@ -30,7 +30,7 @@ public partial class MainViewModel : ViewModelBase
     }
 
     private LoginViewModel CreateLogin()
-        => new(_authService, OnLoginSucceeded);
+        => new(_authService, _settingsService, OnLoginSucceeded);
 
     private void OnLoginSucceeded()
     {

@@ -10,6 +10,7 @@ namespace Lana.ViewModels;
 public partial class SettingsViewModel : ViewModelBase
 {
     private readonly ISettingsService _settingsService;
+    private readonly IAuthService _authService;
     private bool _suppressPersist;
 
     [ObservableProperty]
@@ -30,6 +31,32 @@ public partial class SettingsViewModel : ViewModelBase
     private bool _enableAnimations = true;
 
     [ObservableProperty]
+    private string _currentPassword = string.Empty;
+
+    [ObservableProperty]
+    private string _newPassword = string.Empty;
+
+    [ObservableProperty]
+    private string _confirmNewPassword = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPasswordError))]
+    [NotifyPropertyChangedFor(nameof(HasPasswordSuccess))]
+    private string _passwordMessage = string.Empty;
+
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(HasPasswordError))]
+    [NotifyPropertyChangedFor(nameof(HasPasswordSuccess))]
+    private bool _isPasswordError;
+
+    public bool HasPasswordError => IsPasswordError && !string.IsNullOrWhiteSpace(PasswordMessage);
+
+    public bool HasPasswordSuccess => !IsPasswordError && !string.IsNullOrWhiteSpace(PasswordMessage);
+
+    [ObservableProperty]
+    private bool _isChangingPassword;
+
+    [ObservableProperty]
     private string _statusMessage = "设置已连接到 SQLite";
 
     [ObservableProperty]
@@ -39,9 +66,10 @@ public partial class SettingsViewModel : ViewModelBase
 
     public bool IsSnowSelected => ThemeManager.IsSnow(SelectedTheme);
 
-    public SettingsViewModel(AppUser user, ISettingsService settingsService)
+    public SettingsViewModel(AppUser user, ISettingsService settingsService, IAuthService authService)
     {
         _settingsService = settingsService;
+        _authService = authService;
         DisplayName = user.DisplayName;
         Username = user.Username;
         Role = user.Role;
@@ -107,6 +135,56 @@ public partial class SettingsViewModel : ViewModelBase
         }
 
         _ = PersistBoolAsync(SettingKeys.EnableAnimations, value, value ? "已开启动效并写入 SQLite" : "已关闭动效并写入 SQLite");
+    }
+
+    [RelayCommand]
+    private async Task ChangePasswordAsync()
+    {
+        if (IsChangingPassword)
+        {
+            return;
+        }
+
+        if (!string.Equals(NewPassword, ConfirmNewPassword, StringComparison.Ordinal))
+        {
+            PasswordMessage = "两次输入的新密码不一致";
+            IsPasswordError = true;
+            return;
+        }
+
+        IsChangingPassword = true;
+        PasswordMessage = string.Empty;
+        IsPasswordError = false;
+
+        try
+        {
+            var updatedPassword = NewPassword;
+            var (success, message) = await _authService.ChangePasswordAsync(CurrentPassword, updatedPassword);
+            PasswordMessage = message;
+            IsPasswordError = !success;
+            if (!success)
+            {
+                return;
+            }
+
+            CurrentPassword = string.Empty;
+            NewPassword = string.Empty;
+            ConfirmNewPassword = string.Empty;
+
+            if (await _settingsService.GetBoolAsync(SettingKeys.RememberMe)
+                && string.Equals(
+                    await _settingsService.GetStringAsync(SettingKeys.RememberedUsername),
+                    Username,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                var encoded = Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(updatedPassword));
+                await _settingsService.SetStringAsync(SettingKeys.RememberedPassword, encoded);
+            }
+        }
+        finally
+        {
+            IsChangingPassword = false;
+        }
     }
 
     [RelayCommand]

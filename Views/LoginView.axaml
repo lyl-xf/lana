@@ -57,41 +57,80 @@
       <Border Grid.Column="2" Padding="56,40">
         <Border Classes="glass-panel" Padding="36" VerticalAlignment="Center"
                 HorizontalAlignment="Center" Width="420" MinHeight="480">
-          <StackPanel Spacing="18" VerticalAlignment="Center">
-            <TextBlock Text="欢迎登录" FontSize="28" FontWeight="SemiBold" Classes="primary-text"/>
-            <TextBlock Text="演示账号：admin / 123456 或 demo / demo" Classes="muted-text" FontSize="13"/>
+          <ScrollViewer HorizontalScrollBarVisibility="Disabled"
+                        VerticalScrollBarVisibility="Auto"
+                        MaxHeight="620">
+            <StackPanel Spacing="16" VerticalAlignment="Center">
+              <TextBlock Text="{Binding PanelTitle}" FontSize="28" FontWeight="SemiBold" Classes="primary-text"/>
+              <TextBlock Text="演示账号：admin / 123456 或 demo / demo"
+                         Classes="muted-text" FontSize="13"
+                         IsVisible="{Binding !IsRegisterMode}"/>
+              <TextBlock Text="注册后可立即使用本地账号登录工作台"
+                         Classes="muted-text" FontSize="13"
+                         IsVisible="{Binding IsRegisterMode}"/>
 
-            <StackPanel Spacing="8" Margin="0,12,0,0">
-              <TextBlock Text="用户名" Classes="field-label"/>
-              <TextBox Text="{Binding Username}" PlaceholderText="输入用户名" Classes="neon-input"/>
+              <StackPanel Spacing="8" Margin="0,8,0,0"
+                          IsVisible="{Binding IsRegisterMode}">
+                <TextBlock Text="显示名称" Classes="field-label"/>
+                <TextBox Text="{Binding DisplayName}" PlaceholderText="可选，默认与用户名相同" Classes="neon-input"/>
+              </StackPanel>
+
+              <StackPanel Spacing="8">
+                <TextBlock Text="用户名" Classes="field-label"/>
+                <TextBox Text="{Binding Username}" PlaceholderText="输入用户名" Classes="neon-input"/>
+              </StackPanel>
+
+              <StackPanel Spacing="8">
+                <TextBlock Text="密码" Classes="field-label"/>
+                <TextBox Text="{Binding Password}" PasswordChar="●"
+                         PlaceholderText="输入密码" Classes="neon-input"/>
+              </StackPanel>
+
+              <StackPanel Spacing="8" IsVisible="{Binding IsRegisterMode}">
+                <TextBlock Text="确认密码" Classes="field-label"/>
+                <TextBox Text="{Binding ConfirmPassword}" PasswordChar="●"
+                         PlaceholderText="再次输入密码" Classes="neon-input"/>
+              </StackPanel>
+
+              <CheckBox Content="记住我"
+                        IsChecked="{Binding RememberMe}"
+                        IsVisible="{Binding !IsRegisterMode}"
+                        Classes="remember-me"/>
+
+              <TextBlock Text="{Binding ErrorMessage}"
+                         Foreground="{DynamicResource AppDangerBrush}"
+                         IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                         TextWrapping="Wrap"/>
+
+              <TextBlock Text="{Binding InfoMessage}"
+                         Classes="accent-text"
+                         IsVisible="{Binding InfoMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                         TextWrapping="Wrap"/>
+
+              <Button Classes="cta-button"
+                      Command="{Binding SubmitCommand}"
+                      IsEnabled="{Binding !IsBusy}"
+                      Margin="0,4,0,0">
+                <Panel>
+                  <TextBlock Text="{Binding PrimaryButtonText}" IsVisible="{Binding !IsBusy}"
+                             HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                  <TextBlock Text="{Binding BusyButtonText}" IsVisible="{Binding IsBusy}"
+                             HorizontalAlignment="Center" FontWeight="SemiBold"/>
+                </Panel>
+              </Button>
+
+              <StackPanel Orientation="Horizontal" Spacing="6" HorizontalAlignment="Center" Margin="0,4,0,0">
+                <TextBlock Text="{Binding ModeSwitchHint}" Classes="muted-text" FontSize="13" VerticalAlignment="Center"/>
+                <Button Classes="link-button"
+                        Content="{Binding ModeSwitchActionText}"
+                        Command="{Binding ToggleModeCommand}"
+                        IsEnabled="{Binding !IsBusy}"/>
+              </StackPanel>
+
+              <TextBlock Text=".NET 9 · Avalonia 12 · SQLite"
+                         Classes="muted-text" FontSize="12" HorizontalAlignment="Center" Margin="0,4,0,0"/>
             </StackPanel>
-
-            <StackPanel Spacing="8">
-              <TextBlock Text="密码" Classes="field-label"/>
-              <TextBox Text="{Binding Password}" PasswordChar="●"
-                       PlaceholderText="输入密码" Classes="neon-input"/>
-            </StackPanel>
-
-            <TextBlock Text="{Binding ErrorMessage}"
-                       Foreground="{DynamicResource AppDangerBrush}"
-                       IsVisible="{Binding ErrorMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
-                       TextWrapping="Wrap"/>
-
-            <Button Classes="cta-button"
-                    Command="{Binding LoginCommand}"
-                    IsEnabled="{Binding !IsBusy}"
-                    Margin="0,8,0,0">
-              <Panel>
-                <TextBlock Text="进入工作台" IsVisible="{Binding !IsBusy}"
-                           HorizontalAlignment="Center" FontWeight="SemiBold"/>
-                <TextBlock Text="验证中..." IsVisible="{Binding IsBusy}"
-                           HorizontalAlignment="Center" FontWeight="SemiBold"/>
-              </Panel>
-            </Button>
-
-            <TextBlock Text=".NET 9 · Avalonia 12 · SQLite"
-                       Classes="muted-text" FontSize="12" HorizontalAlignment="Center" Margin="0,8,0,0"/>
-          </StackPanel>
+          </ScrollViewer>
         </Border>
       </Border>
     </Grid>

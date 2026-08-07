@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("Lana")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+226c7eb0118c604e043c16dbbee41b81088bf6d2")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+4bf09fd8959256ad2001557f1f022a398676b39c")]
 [assembly: System.Reflection.AssemblyProductAttribute("Lana")]
 [assembly: System.Reflection.AssemblyTitleAttribute("Lana")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

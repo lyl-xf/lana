@@ -76,7 +76,7 @@ public partial class ShellViewModel : ViewModelBase
             ["Messages"] = new MessagesViewModel(),
             ["Analytics"] = new AnalyticsViewModel(),
             ["About"] = new AboutViewModel(),
-            ["Settings"] = new SettingsViewModel(user, settingsService),
+            ["Settings"] = new SettingsViewModel(user, settingsService, authService),
         };
 
         _currentPage = _pages["Home"];

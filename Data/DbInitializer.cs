@@ -75,4 +75,7 @@ public static class SettingKeys
     public const string ThemeStyle = "ThemeStyle";
     public const string DarkTheme = "DarkTheme";
     public const string EnableAnimations = "EnableAnimations";
+    public const string RememberMe = "RememberMe";
+    public const string RememberedUsername = "RememberedUsername";
+    public const string RememberedPassword = "RememberedPassword";
 }
