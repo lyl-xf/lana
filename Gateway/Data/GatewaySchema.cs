@@ -3,7 +3,11 @@ using Lana.Data.Sqlite;
 namespace Lana.Gateway.Data;
 
 /// <summary>
-/// Gateway 相关表结构初始化（Devices / DeviceVariables / MqttConfigs）。
+/// Gateway 表结构初始化与增量列迁移（Devices / DeviceVariables / MqttConfigs / 操作历史）。
+/// <para>
+/// 新增列模式：在 EnsureCoreAsync 中调用 EnsureColumnAsync(表, 列名, ALTER SQL)，
+/// 再同步 Entity / Mapper / UI。勿直接改已有用户库的 CREATE TABLE（仅对新库生效）。
+/// </para>
 /// </summary>
 public static class GatewaySchema
 {
@@ -23,10 +27,16 @@ public static class GatewaySchema
             "ALTER TABLE MqttConfigs ADD COLUMN IsEnabled INTEGER NOT NULL DEFAULT 1;");
         await EnsureColumnAsync(session, "DeviceVariables", "ShowOnDefinedPage",
             "ALTER TABLE DeviceVariables ADD COLUMN ShowOnDefinedPage INTEGER NOT NULL DEFAULT 0;");
+        await EnsureColumnAsync(session, "DeviceVariables", "DefinedPageDisplayName",
+            "ALTER TABLE DeviceVariables ADD COLUMN DefinedPageDisplayName TEXT NOT NULL DEFAULT '';");
         await EnsureColumnAsync(session, "DeviceVariables", "DefinedPageOperation",
             "ALTER TABLE DeviceVariables ADD COLUMN DefinedPageOperation INTEGER NOT NULL DEFAULT 0;");
         await EnsureColumnAsync(session, "DeviceVariables", "DefinedPageWriteValue",
             "ALTER TABLE DeviceVariables ADD COLUMN DefinedPageWriteValue TEXT NOT NULL DEFAULT '';");
+        await EnsureColumnAsync(session, "MqttConfigs", "EnablePolling",
+            "ALTER TABLE MqttConfigs ADD COLUMN EnablePolling INTEGER NOT NULL DEFAULT 1;");
+        await EnsureColumnAsync(session, "MqttConfigs", "TelemetryPublishInterval",
+            "ALTER TABLE MqttConfigs ADD COLUMN TelemetryPublishInterval INTEGER NOT NULL DEFAULT 0;");
         await DeviceOperationLogSchema.EnsureAsync(session);
     }
 
@@ -81,6 +91,7 @@ public static class GatewaySchema
                 HttpKeyJsonPath TEXT NOT NULL DEFAULT '',
                 HttpValueJsonPath TEXT NOT NULL DEFAULT '',
                 ShowOnDefinedPage INTEGER NOT NULL DEFAULT 0,
+                DefinedPageDisplayName TEXT NOT NULL DEFAULT '',
                 DefinedPageOperation INTEGER NOT NULL DEFAULT 0,
                 DefinedPageWriteValue TEXT NOT NULL DEFAULT ''
             );
@@ -98,7 +109,9 @@ public static class GatewaySchema
                 PubTopic TEXT NOT NULL DEFAULT '',
                 SubTopic TEXT NOT NULL DEFAULT '',
                 OnlineStatusTopic TEXT NOT NULL DEFAULT '',
-                OnlineStatusReportInterval INTEGER NOT NULL DEFAULT 30000
+                OnlineStatusReportInterval INTEGER NOT NULL DEFAULT 30000,
+                EnablePolling INTEGER NOT NULL DEFAULT 1,
+                TelemetryPublishInterval INTEGER NOT NULL DEFAULT 0
             );
             """;
     }

@@ -4,7 +4,7 @@ using Lana.Gateway.Models;
 namespace Lana.Gateway.Data;
 
 /// <summary>
-/// 设备变量表 SQL Mapper。
+/// 物模型变量表 SQL Mapper。含定义页字段（ShowOnDefinedPage 等）。
 /// </summary>
 public sealed class DeviceVariableMapper
 {
@@ -66,6 +66,7 @@ public sealed class DeviceVariableMapper
         HttpKeyJsonPath = row.HttpKeyJsonPath ?? string.Empty,
         HttpValueJsonPath = row.HttpValueJsonPath ?? string.Empty,
         ShowOnDefinedPage = row.ShowOnDefinedPage != 0,
+        DefinedPageDisplayName = row.DefinedPageDisplayName ?? string.Empty,
         DefinedPageOperation = (DefinedPageOperation)row.DefinedPageOperation,
         DefinedPageWriteValue = row.DefinedPageWriteValue ?? string.Empty,
     };
@@ -82,6 +83,7 @@ public sealed class DeviceVariableMapper
         HttpKeyJsonPath = variable.HttpKeyJsonPath ?? string.Empty,
         HttpValueJsonPath = variable.HttpValueJsonPath ?? string.Empty,
         ShowOnDefinedPage = variable.ShowOnDefinedPage ? 1 : 0,
+        DefinedPageDisplayName = variable.DefinedPageDisplayName ?? string.Empty,
         DefinedPageOperation = (int)variable.DefinedPageOperation,
         DefinedPageWriteValue = variable.DefinedPageWriteValue ?? string.Empty,
     };
@@ -98,6 +100,7 @@ public sealed class DeviceVariableMapper
         public string? HttpKeyJsonPath { get; set; }
         public string? HttpValueJsonPath { get; set; }
         public int ShowOnDefinedPage { get; set; }
+        public string? DefinedPageDisplayName { get; set; }
         public int DefinedPageOperation { get; set; }
         public string? DefinedPageWriteValue { get; set; }
     }
@@ -106,7 +109,7 @@ public sealed class DeviceVariableMapper
     {
         public const string Columns = """
             Id, DeviceId, Address, DataType, Alias, Description, ReadWrite,
-            HttpKeyJsonPath, HttpValueJsonPath, ShowOnDefinedPage,
+            HttpKeyJsonPath, HttpValueJsonPath, ShowOnDefinedPage, DefinedPageDisplayName,
             DefinedPageOperation, DefinedPageWriteValue
             """;
 
@@ -127,11 +130,11 @@ public sealed class DeviceVariableMapper
         public const string Insert = """
             INSERT INTO DeviceVariables (
                 DeviceId, Address, DataType, Alias, Description, ReadWrite,
-                HttpKeyJsonPath, HttpValueJsonPath, ShowOnDefinedPage,
+                HttpKeyJsonPath, HttpValueJsonPath, ShowOnDefinedPage, DefinedPageDisplayName,
                 DefinedPageOperation, DefinedPageWriteValue
             ) VALUES (
                 @DeviceId, @Address, @DataType, @Alias, @Description, @ReadWrite,
-                @HttpKeyJsonPath, @HttpValueJsonPath, @ShowOnDefinedPage,
+                @HttpKeyJsonPath, @HttpValueJsonPath, @ShowOnDefinedPage, @DefinedPageDisplayName,
                 @DefinedPageOperation, @DefinedPageWriteValue
             );
             """;
@@ -147,6 +150,7 @@ public sealed class DeviceVariableMapper
                 HttpKeyJsonPath = @HttpKeyJsonPath,
                 HttpValueJsonPath = @HttpValueJsonPath,
                 ShowOnDefinedPage = @ShowOnDefinedPage,
+                DefinedPageDisplayName = @DefinedPageDisplayName,
                 DefinedPageOperation = @DefinedPageOperation,
                 DefinedPageWriteValue = @DefinedPageWriteValue
             WHERE Id = @Id;

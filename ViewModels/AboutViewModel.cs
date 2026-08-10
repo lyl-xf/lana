@@ -4,6 +4,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Lana.ViewModels;
 
+/// <summary>开源组件说明项（关于页）。</summary>
 public sealed class OpenSourceComponent
 {
     public required string Name { get; init; }
@@ -12,6 +13,7 @@ public sealed class OpenSourceComponent
     public required string Notes { get; init; }
 }
 
+/// <summary>关于页（含开源许可说明）；当前未挂到 Shell，可按需重新接入。</summary>
 public partial class AboutViewModel : ViewModelBase
 {
     public string Title => "关于";

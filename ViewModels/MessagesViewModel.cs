@@ -1,5 +1,6 @@
 namespace Lana.ViewModels;
 
+/// <summary>遗留「消息」页占位，当前未挂到 Shell 导航。</summary>
 public partial class MessagesViewModel : ViewModelBase
 {
     public string Title => "消息";

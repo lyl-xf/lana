@@ -3,6 +3,10 @@ using Avalonia.Styling;
 
 namespace Lana.Themes;
 
+/// <summary>
+/// 主题切换：Aurora（暗）/ Snow（亮）。刷子资源在 AppTheme.axaml；
+/// 切换时设置 RequestedThemeVariant 并触发 ThemeChanged。
+/// </summary>
 public static class ThemeManager
 {
     public const string Aurora = "Aurora";

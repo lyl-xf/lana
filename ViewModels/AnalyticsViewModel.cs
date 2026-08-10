@@ -1,5 +1,6 @@
 namespace Lana.ViewModels;
 
+/// <summary>遗留「数据」页占位，当前未挂到 Shell 导航；可复用或删除。</summary>
 public partial class AnalyticsViewModel : ViewModelBase
 {
     public string Title => "数据";

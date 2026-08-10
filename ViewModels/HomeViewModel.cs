@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Lana.ViewModels;
 
+/// <summary>首页欢迎与概览卡片（展示用，可按需改成真实统计）。</summary>
 public partial class HomeViewModel : ViewModelBase
 {
     [ObservableProperty]

@@ -40,6 +40,7 @@ public sealed class DeviceVariableBackupDto
     public string HttpKeyJsonPath { get; set; } = string.Empty;
     public string HttpValueJsonPath { get; set; } = string.Empty;
     public bool ShowOnDefinedPage { get; set; }
+    public string DefinedPageDisplayName { get; set; } = string.Empty;
     public DefinedPageOperation DefinedPageOperation { get; set; } = DefinedPageOperation.Read;
     public string DefinedPageWriteValue { get; set; } = string.Empty;
 }
@@ -47,6 +48,7 @@ public sealed class DeviceVariableBackupDto
 public sealed class MqttBackupDto
 {
     public bool IsEnabled { get; set; } = true;
+    public bool EnablePolling { get; set; } = true;
     public string BrokerIp { get; set; } = string.Empty;
     public int Port { get; set; }
     public string ClientId { get; set; } = string.Empty;
@@ -56,4 +58,5 @@ public sealed class MqttBackupDto
     public string SubTopic { get; set; } = string.Empty;
     public string OnlineStatusTopic { get; set; } = string.Empty;
     public int OnlineStatusReportInterval { get; set; } = 30000;
+    public int TelemetryPublishInterval { get; set; }
 }

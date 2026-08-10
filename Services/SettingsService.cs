@@ -3,6 +3,7 @@ using Lana.Data.Sqlite;
 
 namespace Lana.Services;
 
+/// <summary>Settings 表键值读写实现。</summary>
 public sealed class SettingsService : ISettingsService
 {
     private readonly ISqliteSessionFactory _sessionFactory;

@@ -4,6 +4,9 @@ using Lana.Data.Sqlite;
 
 namespace Lana.Cameras.Services;
 
+/// <summary>
+/// 摄像头 CRUD 与播放请求组装。定义页通过 <see cref="ListEnabledAsync"/> 拉取启用摄像头。
+/// </summary>
 public sealed class CameraService
 {
     private readonly CameraMapper _mapper;
@@ -45,8 +48,37 @@ public sealed class CameraService
     public Task DeleteAsync(long id)
         => _mapper.DeleteAsync(id);
 
-    /// <summary>组装可播放的 RTSP 地址（含可选账号密码）。</summary>
+    /// <summary>组装 LibVLC 播放请求（网络流或本机 dshow）。</summary>
+    public static CameraPlayRequest BuildPlayRequest(Camera camera)
+    {
+        ArgumentNullException.ThrowIfNull(camera);
+
+        if (camera.SourceType == CameraSourceType.Local)
+        {
+            // VideoLAN.LibVLC.Windows NuGet 未包含 libdshow_plugin，无法打开本机/USB 摄像头
+            throw new NotSupportedException(
+                "当前播放组件不支持本机/USB 摄像头，请改用网络摄像头（RTSP/HTTP）。");
+        }
+
+        var url = BuildNetworkUrl(camera);
+        return new CameraPlayRequest
+        {
+            Mrl = url,
+            Options =
+            [
+                ":rtsp-tcp",
+                ":network-caching=500",
+                ":no-audio",
+            ],
+            IsLocal = false,
+        };
+    }
+
+    /// <summary>兼容旧调用：仅网络流场景返回 URL；本机返回 dshow://。</summary>
     public static string BuildPlayUrl(Camera camera)
+        => BuildPlayRequest(camera).Mrl;
+
+    private static string BuildNetworkUrl(Camera camera)
     {
         var url = (camera.RtspUrl ?? string.Empty).Trim();
         if (string.IsNullOrWhiteSpace(url))
@@ -73,24 +105,40 @@ public sealed class CameraService
     {
         camera.Name = camera.Name?.Trim() ?? string.Empty;
         camera.RtspUrl = camera.RtspUrl?.Trim() ?? string.Empty;
+        camera.LocalDeviceName = camera.LocalDeviceName?.Trim() ?? string.Empty;
         camera.Username = camera.Username?.Trim() ?? string.Empty;
         camera.Password ??= string.Empty;
         camera.Description = camera.Description?.Trim() ?? string.Empty;
+
+        if (camera.SourceType == CameraSourceType.Local)
+        {
+            camera.RtspUrl = string.Empty;
+            camera.Username = string.Empty;
+            camera.Password = string.Empty;
+        }
+        else
+        {
+            camera.LocalDeviceName = string.Empty;
+        }
     }
 
     private static void Validate(Camera camera)
     {
         if (string.IsNullOrWhiteSpace(camera.Name))
             throw new ArgumentException("摄像头名称不能为空。");
+
+        if (camera.SourceType == CameraSourceType.Local)
+            throw new ArgumentException("当前版本不支持本机/USB 摄像头，请使用网络流（RTSP/HTTP）。");
+
         if (string.IsNullOrWhiteSpace(camera.RtspUrl))
-            throw new ArgumentException("RTSP 地址不能为空。");
+            throw new ArgumentException("视频流地址不能为空。");
         if (!camera.RtspUrl.StartsWith("rtsp://", StringComparison.OrdinalIgnoreCase)
             && !camera.RtspUrl.StartsWith("rtsps://", StringComparison.OrdinalIgnoreCase)
             && !camera.RtspUrl.StartsWith("http://", StringComparison.OrdinalIgnoreCase)
             && !camera.RtspUrl.StartsWith("https://", StringComparison.OrdinalIgnoreCase)
             && !camera.RtspUrl.StartsWith("file://", StringComparison.OrdinalIgnoreCase))
         {
-            throw new ArgumentException("地址需以 rtsp://、http(s):// 或 file:// 开头。");
+            throw new ArgumentException("网络地址需以 rtsp://、http(s):// 或 file:// 开头。");
         }
     }
 }

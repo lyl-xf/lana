@@ -7,8 +7,13 @@ using Lana.Gateway.Models;
 
 namespace Lana.Gateway.Services;
 
+/// <summary>
+/// 按协议创建 IoTClient 动态客户端实例。
+/// 新增 IoTClient 支持的协议：在此 switch 增加分支，并扩展 ProtocolType。
+/// </summary>
 public static class IoTClientFactory
 {
+    /// <summary>创建未 Open 的客户端；HttpClient 协议请走 HttpClientDeviceSession。</summary>
     public static dynamic CreateClient(Device device)
     {
         return device.ProtocolType switch

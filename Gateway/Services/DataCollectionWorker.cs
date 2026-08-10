@@ -8,6 +8,18 @@ using MQTTnet.Client;
 
 namespace Lana.Gateway.Services
 {
+    /// <summary>
+    /// 登录后后台采集与 MQTT 上报/订阅 Worker。
+    /// <para>
+    /// 周期从 <see cref="IGatewayConfigStore"/> 拉取活跃设备；
+    /// <c>PollInterval == 0</c> 的设备跳过轮询（仍可调试读写）。
+    /// 会话按连接参数哈希共享（同 IP/串口配置共用一条连接）。
+    /// </para>
+    /// <para>
+    /// 生命周期由 <c>MainViewModel</c> 在登录 Start、登出 Stop/Dispose。
+    /// 扩展采集逻辑时优先改 FillDevicePayload / MQTT 订阅处理，注意失败退避。
+    /// </para>
+    /// </summary>
     public class DataCollectionWorker : IAsyncDisposable
     {
         private static readonly JsonSerializerOptions MqttJsonOptions = new()
@@ -22,8 +34,10 @@ namespace Lana.Gateway.Services
 
         private readonly IGatewayConfigStore _configStore;
         private readonly ProtocolSessionFactory _sessionFactory;
+        private readonly IDeviceDataSnapshotStore? _snapshotStore;
         private IMqttClient? _mqttClient;
         private readonly Dictionary<long, DateTime> _lastPollTimes = new();
+        private readonly Dictionary<long, DateTime> _lastTelemetryPublishTimes = new();
         private DateTime _lastDbCheck = DateTime.MinValue;
         private DateTime _lastOnlineStatusReport = DateTime.MinValue;
         private MqttConfig? _cachedMqttConfig;
@@ -42,6 +56,9 @@ namespace Lana.Gateway.Services
         /// <summary>设备连接失败退避状态（与采集锁分离，MQTT 可快速判断）。</summary>
         private readonly ConcurrentDictionary<long, DeviceFailState> _failStates = new();
 
+        /// <summary>防止同一设备上轮询未完成时又启动下一轮（点位多时会超过 PollInterval）。</summary>
+        private readonly ConcurrentDictionary<long, byte> _pollingDevices = new();
+
         private CancellationTokenSource? _cts;
         private Task? _loopTask;
         private readonly object _lifecycleLock = new();
@@ -54,10 +71,14 @@ namespace Lana.Gateway.Services
             public readonly object Gate = new();
         }
 
-        public DataCollectionWorker(IGatewayConfigStore configStore, ProtocolSessionFactory sessionFactory)
+        public DataCollectionWorker(
+            IGatewayConfigStore configStore,
+            ProtocolSessionFactory sessionFactory,
+            IDeviceDataSnapshotStore? snapshotStore = null)
         {
             _configStore = configStore;
             _sessionFactory = sessionFactory;
+            _snapshotStore = snapshotStore;
         }
 
         public Task StartAsync(CancellationToken cancellationToken = default)
@@ -250,99 +271,58 @@ namespace Lana.Gateway.Services
                         _cachedDevices = await _configStore.GetActiveDevicesWithVariablesAsync(stoppingToken);
                         _lastDbCheck = now;
 
-                        // Cleanup inactive or deleted devices from cache
                         var activeDeviceIds = _cachedDevices.Select(d => d.Id).ToHashSet();
                         var toRemove = _deviceClientRefs.Keys.Where(id => !activeDeviceIds.Contains(id)).ToList();
                         foreach (var id in toRemove)
                         {
                             ReleaseClientByDeviceId(id);
                             _lastPollTimes.Remove(id);
+                            _lastTelemetryPublishTimes.Remove(id);
                             _deviceOnlineStatus.Remove(id);
+                            _pollingDevices.TryRemove(id, out _);
                             ClearDeviceFailure(id);
                         }
                     }
 
-                    if (_cachedMqttConfig is { IsEnabled: true } && _cachedDevices.Any())
+                    if (!_cachedDevices.Any())
                     {
-                        await EnsureMqttConnectedAsync(_cachedMqttConfig, stoppingToken);
+                        await Task.Delay(100, stoppingToken);
+                        continue;
+                    }
 
+                    // MQTT 连接/订阅与轮询解耦：开启 MQTT 即可收指令，不要求轮询
+                    if (_cachedMqttConfig is { IsEnabled: true })
+                        await EnsureMqttConnectedAsync(_cachedMqttConfig, stoppingToken);
+                    else
+                        await DisconnectMqttAsync();
+
+                    var pollingEnabled = _cachedMqttConfig is { EnablePolling: true };
+
+                    if (pollingEnabled)
+                    {
                         foreach (var device in _cachedDevices)
                         {
-                            // PollInterval = 0：关闭该设备数据采集
                             if (device.PollInterval <= 0)
                                 continue;
 
                             var interval = device.PollInterval;
 
-                            // 退避中跳过采集，避免反复连接超时拖死整轮
                             if (IsInBackoff(device.Id, now))
                                 continue;
 
-                            if (_lastPollTimes.TryGetValue(device.Id, out var lastPollTime))
-                            {
-                                if ((now - lastPollTime).TotalMilliseconds < interval)
-                                    continue;
-                            }
+                            if (_lastPollTimes.TryGetValue(device.Id, out var lastPollTime)
+                                && (now - lastPollTime).TotalMilliseconds < interval)
+                                continue;
 
-                            _lastPollTimes[device.Id] = now;
+                            if (!_pollingDevices.TryAdd(device.Id, 0))
+                                continue;
 
-                            var session = AcquireSessionForDevice(device);
-                            var payload = new Dictionary<string, object>();
-
-                            lock (session)
-                            {
-                                try
-                                {
-                                    if (!session.IsConnected)
-                                    {
-                                        var openResult = session.Open();
-                                        if (!openResult.Success)
-                                        {
-                                            _deviceOnlineStatus[device.Id] = false;
-                                            RegisterDeviceFailure(device.Id, now, openResult.Error ?? "连接失败");
-                                        }
-                                    }
-
-                                    if (session.IsConnected)
-                                    {
-                                        ClearDeviceFailure(device.Id);
-                                        _deviceOnlineStatus[device.Id] = true;
-                                        FillDevicePayload(device, session, payload);
-                                    }
-                                }
-                                catch (Exception ex)
-                                {
-                                    Console.WriteLine($"[Device {device.Id}] Error: {ex.Message}");
-                                    try { session.Close(); } catch { /* ignore */ }
-                                    _deviceOnlineStatus[device.Id] = false;
-                                    RegisterDeviceFailure(device.Id, now, ex.Message);
-                                }
-                            }
-
-                            if (payload.Any() && _mqttClient != null && _mqttClient.IsConnected)
-                            {
-                                var json = JsonSerializer.Serialize(new
-                                {
-                                    deviceId = device.Id,
-                                    timestamp = DateTime.Now,
-                                    data = payload
-                                }, MqttJsonOptions);
-
-                                var message = new MqttApplicationMessageBuilder()
-                                    .WithTopic(_cachedMqttConfig.PubTopic)
-                                    .WithPayload(json)
-                                    .Build();
-
-                                await _mqttClient.PublishAsync(message, stoppingToken);
-                            }
+                            var polledDevice = device;
+                            _ = PollDeviceOnceAsync(polledDevice, now, stoppingToken);
                         }
 
-                        await PublishOnlineStatusAsync(_cachedMqttConfig, now, stoppingToken);
-                    }
-                    else
-                    {
-                        // MQTT 关闭或未配置：断开客户端，停止采集上报
-                        await DisconnectMqttAsync();
+                        if (_cachedMqttConfig is { IsEnabled: true })
+                            await PublishOnlineStatusAsync(_cachedMqttConfig, now, stoppingToken);
                     }
                 }
                 catch (Exception ex)
@@ -353,6 +333,186 @@ namespace Lana.Gateway.Services
                 await Task.Delay(100, stoppingToken);
             }
         }
+
+        private async Task PollDeviceOnceAsync(Device device, DateTime pollStartedUtc, CancellationToken ct)
+        {
+            try
+            {
+                var session = AcquireSessionForDevice(device);
+                Dictionary<string, object> payload;
+                lock (session)
+                {
+                    payload = PollDevicePayload(device, session, pollStartedUtc);
+                }
+
+                if (payload.Count > 0)
+                {
+                    PublishSnapshot(device, payload, pollStartedUtc);
+
+                    if (_cachedMqttConfig is { IsEnabled: true }
+                        && _mqttClient != null
+                        && _mqttClient.IsConnected
+                        && ShouldPublishTelemetryForDevice(device.Id, pollStartedUtc, _cachedMqttConfig.TelemetryPublishInterval)
+                        && !string.IsNullOrWhiteSpace(_cachedMqttConfig.PubTopic))
+                    {
+                        await PublishTelemetryAsync(device.Id, payload, ct).ConfigureAwait(false);
+                        _lastTelemetryPublishTimes[device.Id] = DateTime.UtcNow;
+                    }
+                }
+
+                _lastPollTimes[device.Id] = DateTime.UtcNow;
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Device {device.Id}] Poll task error: {ex.Message}");
+            }
+            finally
+            {
+                _pollingDevices.TryRemove(device.Id, out _);
+            }
+        }
+
+        private Dictionary<string, object> PollDevicePayload(
+            Device device,
+            IDeviceProtocolSession session,
+            DateTime now)
+        {
+            var payload = new Dictionary<string, object>();
+            try
+            {
+                if (!session.IsConnected)
+                {
+                    var openResult = session.Open();
+                    if (!openResult.Success)
+                    {
+                        _deviceOnlineStatus[device.Id] = false;
+                        RegisterDeviceFailure(device.Id, now, openResult.Error ?? "连接失败");
+                        return payload;
+                    }
+                }
+
+                if (session.IsConnected)
+                {
+                    ClearDeviceFailure(device.Id);
+                    _deviceOnlineStatus[device.Id] = true;
+                    FillDevicePayload(device, session, payload);
+                }
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"[Device {device.Id}] Error: {ex.Message}");
+                try { session.Close(); } catch { /* ignore */ }
+                _deviceOnlineStatus[device.Id] = false;
+                RegisterDeviceFailure(device.Id, now, ex.Message);
+            }
+
+            return payload;
+        }
+
+        private void PublishSnapshot(Device device, Dictionary<string, object> payload, DateTime nowUtc)
+        {
+            if (_snapshotStore is null || payload.Count == 0)
+                return;
+
+            var entries = BuildSnapshotEntries(device, payload, nowUtc);
+            if (entries.Count == 0)
+                return;
+
+            _snapshotStore.UpdateDevice(device.Id, device.Name, entries);
+        }
+
+        private bool ShouldPublishTelemetryForDevice(long deviceId, DateTime nowUtc, int intervalMs)
+        {
+            if (intervalMs <= 0)
+                return true;
+
+            if (!_lastTelemetryPublishTimes.TryGetValue(deviceId, out var last))
+                return true;
+
+            return (nowUtc - last).TotalMilliseconds >= intervalMs;
+        }
+
+        private async Task PublishTelemetryAsync(
+            long deviceId,
+            Dictionary<string, object> payload,
+            CancellationToken ct)
+        {
+            if (_cachedMqttConfig is null || _mqttClient is null || !_mqttClient.IsConnected)
+                return;
+
+            var json = JsonSerializer.Serialize(new
+            {
+                deviceId,
+                timestamp = DateTime.Now,
+                data = payload
+            }, MqttJsonOptions);
+
+            var message = new MqttApplicationMessageBuilder()
+                .WithTopic(_cachedMqttConfig.PubTopic)
+                .WithPayload(json)
+                .Build();
+
+            await _mqttClient.PublishAsync(message, ct);
+        }
+
+        private static List<DeviceVariableSnapshotEntry> BuildSnapshotEntries(
+            Device device,
+            Dictionary<string, object> payload,
+            DateTime updatedAtUtc)
+        {
+            var list = new List<DeviceVariableSnapshotEntry>();
+            var usedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+
+            foreach (var variable in device.Variables)
+            {
+                if (string.IsNullOrWhiteSpace(variable.Alias))
+                    continue;
+                if (!payload.TryGetValue(variable.Alias, out var val) || val is null)
+                    continue;
+
+                usedKeys.Add(variable.Alias);
+                list.Add(new DeviceVariableSnapshotEntry
+                {
+                    VariableId = variable.Id,
+                    Label = ResolveSnapshotLabel(variable),
+                    ValueText = FormatSnapshotValue(val),
+                    UpdatedAtUtc = updatedAtUtc,
+                });
+            }
+
+            foreach (var kv in payload)
+            {
+                if (usedKeys.Contains(kv.Key) || kv.Value is null)
+                    continue;
+
+                list.Add(new DeviceVariableSnapshotEntry
+                {
+                    VariableId = 0,
+                    Label = kv.Key,
+                    ValueText = FormatSnapshotValue(kv.Value),
+                    UpdatedAtUtc = updatedAtUtc,
+                });
+            }
+
+            return list;
+        }
+
+        private static string ResolveSnapshotLabel(DeviceVariable variable)
+        {
+            if (!string.IsNullOrWhiteSpace(variable.Description))
+                return variable.Description.Trim();
+            if (!string.IsNullOrWhiteSpace(variable.Alias))
+                return variable.Alias.Trim();
+            return variable.Address;
+        }
+
+        private static string FormatSnapshotValue(object value)
+            => value switch
+            {
+                bool b => b ? "true" : "false",
+                string s => s,
+                _ => value.ToString() ?? string.Empty,
+            };
 
         /// <summary>
         /// 填充设备上报 data。HttpClient 按物模型 key/value JSON 路径展开；其它协议按 Alias 读点。
@@ -394,12 +554,10 @@ namespace Lana.Gateway.Services
                     var read = session.Read(variable.Address, (ProtocolDataType)(int)variable.DataType);
                     if (read.Success)
                         val = read.Value;
-                    else
-                        Console.WriteLine($"[Device {device.Id}] Failed to read {variable.Alias} ({variable.Address}): {read.Error}");
                 }
-                catch (Exception ex)
+                catch
                 {
-                    Console.WriteLine($"[Device {device.Id}] Exception reading {variable.Alias} ({variable.Address}): {ex.Message}");
+                    /* 单点失败跳过，避免大量 Console 输出拖慢轮询 */
                 }
 
                 if (val != null) payload[variable.Alias] = val;

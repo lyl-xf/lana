@@ -6,6 +6,7 @@ using Lana.Models;
 
 namespace Lana.Services;
 
+/// <summary>基于 Users 表的认证实现；密码为 SHA256 十六进制（见 PasswordHasher）。</summary>
 public sealed class AuthService : IAuthService
 {
     private const int MinPasswordLength = 4;

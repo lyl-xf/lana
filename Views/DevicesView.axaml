@@ -17,7 +17,7 @@
     <TabControl SelectedIndex="{Binding SelectedTabIndex}">
       <!-- 设备 -->
       <TabItem Header="设备">
-        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="4,8,4,4">
           <Border Classes="glass-panel" Padding="14">
             <DockPanel>
               <StackPanel DockPanel.Dock="Top" Spacing="10">
@@ -239,7 +239,7 @@
 
       <!-- 物模型 -->
       <TabItem Header="物模型">
-        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="4,8,4,4">
           <Border Classes="glass-panel" Padding="14">
             <DockPanel>
               <StackPanel DockPanel.Dock="Top" Spacing="10">
@@ -271,33 +271,17 @@
                        SelectedItem="{Binding SelectedVariable}">
                 <ListBox.ItemTemplate>
                   <DataTemplate x:DataType="vm:VariableListItem">
-                    <Border Classes="list-item-card">
-                      <StackPanel Spacing="6">
-                        <Grid ColumnDefinitions="Auto,*,Auto,Auto" ColumnSpacing="8">
-                          <Border Classes="list-item-index">
-                            <TextBlock Classes="accent-text" FontWeight="Bold" FontSize="13"
-                                       HorizontalAlignment="Center"
-                                       Text="{Binding Id, StringFormat='#{0}'}"/>
-                          </Border>
-                          <TextBlock Grid.Column="1" Text="{Binding Alias}" Classes="primary-text"
-                                     FontWeight="SemiBold" VerticalAlignment="Center"
-                                     TextTrimming="CharacterEllipsis"/>
-                          <Border Grid.Column="2" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center"
-                                  IsVisible="{Binding ShowOnDefinedPage}">
-                            <TextBlock Classes="accent-text" FontSize="11"
-                                       Text="{Binding DefinedPageModeText, StringFormat='自定义·{0}'}"/>
-                          </Border>
-                          <Border Grid.Column="3" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center">
-                            <TextBlock Text="{Binding DataTypeName}" Classes="accent-text" FontSize="11"/>
-                          </Border>
-                        </Grid>
-                        <TextBlock Classes="muted-text" FontSize="12">
-                          <Run Text="{Binding Address}"/><Run Text=" · "/><Run Text="{Binding ReadWriteName}"/>
-                        </TextBlock>
-                        <TextBlock Text="{Binding Description}" Classes="muted-text" FontSize="11"
-                                   TextTrimming="CharacterEllipsis"/>
-                        <Border Classes="list-item-divider"/>
-                      </StackPanel>
+                    <Border Classes="list-item-card" Padding="8,5">
+                      <Grid ColumnDefinitions="Auto,*" ColumnSpacing="8">
+                        <Border Classes="list-item-index" VerticalAlignment="Center">
+                          <TextBlock Classes="accent-text" FontWeight="Bold" FontSize="12"
+                                     HorizontalAlignment="Center"
+                                     Text="{Binding Id, StringFormat='#{0}'}"/>
+                        </Border>
+                        <TextBlock Grid.Column="1" Text="{Binding DisplayLine}" Classes="muted-text"
+                                   FontSize="11" VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis" TextWrapping="NoWrap"/>
+                      </Grid>
                     </Border>
                   </DataTemplate>
                 </ListBox.ItemTemplate>
@@ -310,7 +294,7 @@
             <ScrollViewer HorizontalScrollBarVisibility="Disabled">
               <StackPanel Spacing="12">
                 <TextBlock Text="物模型编辑" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
-                <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
                       RowSpacing="10" ColumnSpacing="12">
                   <TextBlock Text="地址" Classes="field-label" VerticalAlignment="Center"/>
                   <TextBox Grid.Column="1" Text="{Binding VarAddress}" Classes="neon-input"
@@ -338,24 +322,35 @@
                   <ToggleSwitch Grid.Row="5" Grid.Column="1" IsChecked="{Binding VarShowOnDefinedPage}"
                                 OnContent="开" OffContent="关"/>
 
-                  <TextBlock Grid.Row="6" Text="自定义页操作" Classes="field-label" VerticalAlignment="Center"
+                  <TextBlock Grid.Row="6" Text="自定义页名称" Classes="field-label" VerticalAlignment="Center"
                              IsVisible="{Binding ShowDefinedPageOptions}"/>
-                  <ComboBox Grid.Row="6" Grid.Column="1"
+                  <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding VarDefinedPageDisplayName}"
+                           Classes="neon-input"
+                           PlaceholderText="如 启动泵 / 急停"
+                           IsVisible="{Binding ShowDefinedPageOptions}"/>
+
+                  <TextBlock Grid.Row="7" Text="自定义页操作" Classes="field-label" VerticalAlignment="Center"
+                             IsVisible="{Binding ShowDefinedPageOperationSelector}"/>
+                  <ComboBox Grid.Row="7" Grid.Column="1"
                             ItemsSource="{Binding DefinedPageOperationOptions}"
                             SelectedIndex="{Binding VarDefinedPageOperation}"
                             HorizontalAlignment="Stretch"
-                            IsVisible="{Binding ShowDefinedPageOptions}"/>
+                            IsVisible="{Binding ShowDefinedPageOperationSelector}"/>
 
-                  <TextBlock Grid.Row="7" Text="默认写入值" Classes="field-label" VerticalAlignment="Center"
+                  <TextBlock Grid.Row="8" Text="默认写入值" Classes="field-label" VerticalAlignment="Center"
                              IsVisible="{Binding ShowDefinedPageWriteValue}"/>
-                  <TextBox Grid.Row="7" Grid.Column="1" Text="{Binding VarDefinedPageWriteValue}"
+                  <TextBox Grid.Row="8" Grid.Column="1" Text="{Binding VarDefinedPageWriteValue}"
                            Classes="neon-input"
                            PlaceholderText="如 true / 1 / 100"
                            IsVisible="{Binding ShowDefinedPageWriteValue}"/>
                 </Grid>
 
                 <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
-                           Text="开启「进入自定义页」后，请选择读取或写入；写入时需填写默认写入值，点击定义页按钮将按该值写入。"/>
+                           IsVisible="{Binding ShowDefinedPageBoolHint}"
+                           Text="Bool 类型：定义页按钮为点动——按下写入 true，松开写入 false。"/>
+                <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
+                           IsVisible="{Binding ShowDefinedPageOperationSelector}"
+                           Text="非 Bool：选择读取或写入；写入时需填写默认写入值。按钮文字使用「自定义页名称」。"/>
 
                 <Border Classes="glass-panel" Padding="12" IsVisible="{Binding ShowHttpVariableFields}">
                   <StackPanel Spacing="10">
@@ -400,20 +395,29 @@
             <Border Classes="glass-panel" Padding="20" HorizontalAlignment="Stretch">
               <StackPanel Spacing="14">
                 <StackPanel Spacing="4">
-                  <TextBlock Text="MQTT 配置" Classes="primary-text" FontWeight="SemiBold" FontSize="18"/>
-                  <TextBlock Text="关闭后 MQTT 客户端不参与设备采集与上报" Classes="muted-text" FontSize="12"/>
+                  <TextBlock Text="MQTT 与轮询" Classes="primary-text" FontWeight="SemiBold" FontSize="18"/>
+                  <TextBlock Text="轮询与 MQTT 可独立开关：轮询关时仍可收 MQTT 写入指令；MQTT 关时仍可本地轮询与定义页展示" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel Spacing="2" VerticalAlignment="Center">
+                    <TextBlock Text="启用轮询查询" Classes="secondary-text" FontWeight="SemiBold"/>
+                    <TextBlock Text="按各设备「采集周期」读点并更新定义页状态；与 MQTT 上报无关" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
+                  </StackPanel>
+                  <ToggleSwitch Grid.Column="1" IsChecked="{Binding MqttEnablePolling}"
+                                OnContent="开" OffContent="关" VerticalAlignment="Center"/>
+                </Grid>
+
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Spacing="2" VerticalAlignment="Center">
                     <TextBlock Text="启用 MQTT" Classes="secondary-text" FontWeight="SemiBold"/>
-                    <TextBlock Text="开启后连接 Broker 并采集上报；关闭后立即断开" Classes="muted-text" FontSize="12"/>
+                    <TextBlock Text="连接 Broker、订阅指令；周期遥测上报仅在轮询开且下方间隔允许时发送" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
                   </StackPanel>
                   <ToggleSwitch Grid.Column="1" IsChecked="{Binding MqttIsEnabled}"
                                 OnContent="开" OffContent="关" VerticalAlignment="Center"/>
                 </Grid>
 
-                <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                <Grid ColumnDefinitions="160,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto,Auto"
                       RowSpacing="10" ColumnSpacing="12">
                   <TextBlock Text="Broker IP" Classes="field-label" VerticalAlignment="Center"/>
                   <TextBox Grid.Column="1" Text="{Binding MqttBrokerIp}" Classes="neon-input"/>
@@ -444,6 +448,17 @@
                   <TextBlock Grid.Row="8" Text="状态上报间隔(ms)" Classes="field-label" VerticalAlignment="Center"/>
                   <NumericUpDown Grid.Row="8" Grid.Column="1" Value="{Binding MqttOnlineStatusReportInterval}"
                                  Minimum="1000" Classes="neon-input" FormatString="0"/>
+
+                  <TextBlock Grid.Row="9" Text="遥测上报间隔(ms)" Classes="field-label" VerticalAlignment="Center"/>
+                  <StackPanel Grid.Row="9" Grid.Column="1" Spacing="4">
+                    <NumericUpDown Value="{Binding MqttTelemetryPublishInterval}"
+                                   Minimum="0" Classes="neon-input" FormatString="0"/>
+                    <TextBlock Text="0 = 每次轮询成功即上报；建议 ≥ 设备采集周期" Classes="muted-text" FontSize="11" TextWrapping="Wrap"/>
+                  </StackPanel>
+
+                  <TextBlock Grid.Row="10" Text="单设备采集周期" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Row="10" Grid.Column="1" Text="在「设备列表 → 编辑设备」中配置 PollInterval（ms），0 = 该设备不采"
+                             Classes="muted-text" FontSize="11" TextWrapping="Wrap" VerticalAlignment="Center"/>
                 </Grid>
 
                 <StackPanel Orientation="Horizontal" Spacing="10">
@@ -461,7 +476,7 @@
 
       <!-- 调试 -->
       <TabItem Header="设备调试">
-        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="4,8,4,4">
           <Border Classes="glass-panel" Padding="16">
             <StackPanel Spacing="12">
               <TextBlock Text="设备调试" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>

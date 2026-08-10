@@ -32,6 +32,8 @@ public sealed class VariableListItem
     public string ReadWriteName { get; init; } = string.Empty;
     public bool ShowOnDefinedPage { get; init; }
     public string DefinedPageModeText { get; init; } = string.Empty;
+    /// <summary>列表单行摘要（地址、类型、权限、描述、自定义页等）。</summary>
+    public string DisplayLine { get; init; } = string.Empty;
     public DeviceVariable Source { get; init; } = null!;
 }
 
@@ -52,6 +54,11 @@ public sealed class DebugVariableItem
     public DeviceVariable Source { get; init; } = null!;
 }
 
+/// <summary>
+/// 设备管理页（Admin）：设备 / 物模型 / MQTT / 调试读写 / 配置备份。
+/// 物模型上「进入自定义页」等字段仅影响定义页，不影响采集。
+/// 调试读写请走注入的 <see cref="IDeviceDebugApi"/>。
+/// </summary>
 public partial class DevicesViewModel : ViewModelBase
 {
     private static readonly JsonSerializerOptions HttpConfigJsonOptions = new()
@@ -488,6 +495,10 @@ public partial class DevicesViewModel : ViewModelBase
     private string _varAddress = string.Empty;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(IsBoolVariableDataType))]
+    [NotifyPropertyChangedFor(nameof(ShowDefinedPageOperationSelector))]
+    [NotifyPropertyChangedFor(nameof(ShowDefinedPageWriteValue))]
+    [NotifyPropertyChangedFor(nameof(ShowDefinedPageBoolHint))]
     private int _varDataType;
 
     [ObservableProperty]
@@ -507,8 +518,13 @@ public partial class DevicesViewModel : ViewModelBase
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowDefinedPageOptions))]
+    [NotifyPropertyChangedFor(nameof(ShowDefinedPageOperationSelector))]
     [NotifyPropertyChangedFor(nameof(ShowDefinedPageWriteValue))]
+    [NotifyPropertyChangedFor(nameof(ShowDefinedPageBoolHint))]
     private bool _varShowOnDefinedPage;
+
+    [ObservableProperty]
+    private string _varDefinedPageDisplayName = string.Empty;
 
     [ObservableProperty]
     [NotifyPropertyChangedFor(nameof(ShowDefinedPageWriteValue))]
@@ -521,8 +537,19 @@ public partial class DevicesViewModel : ViewModelBase
 
     public bool ShowDefinedPageOptions => VarShowOnDefinedPage;
 
+    public bool IsBoolVariableDataType
+        => (DataType)VarDataType is DataType.Bool or DataType.Coil or DataType.Discrete;
+
+    public bool ShowDefinedPageOperationSelector
+        => VarShowOnDefinedPage && !IsBoolVariableDataType;
+
     public bool ShowDefinedPageWriteValue
-        => VarShowOnDefinedPage && VarDefinedPageOperation == (int)DefinedPageOperation.Write;
+        => VarShowOnDefinedPage
+           && !IsBoolVariableDataType
+           && VarDefinedPageOperation == (int)DefinedPageOperation.Write;
+
+    public bool ShowDefinedPageBoolHint
+        => VarShowOnDefinedPage && IsBoolVariableDataType;
 
     public bool ShowHttpVariableFields
     {
@@ -592,6 +619,7 @@ public partial class DevicesViewModel : ViewModelBase
         VarHttpKeyPath = string.Empty;
         VarHttpValuePath = string.Empty;
         VarShowOnDefinedPage = false;
+        VarDefinedPageDisplayName = string.Empty;
         VarDefinedPageOperation = (int)DefinedPageOperation.Read;
         VarDefinedPageWriteValue = string.Empty;
         IsEditingVariable = true;
@@ -618,6 +646,7 @@ public partial class DevicesViewModel : ViewModelBase
         VarHttpKeyPath = v.HttpKeyJsonPath;
         VarHttpValuePath = v.HttpValueJsonPath;
         VarShowOnDefinedPage = v.ShowOnDefinedPage;
+        VarDefinedPageDisplayName = v.DefinedPageDisplayName;
         VarDefinedPageOperation = (int)v.DefinedPageOperation;
         VarDefinedPageWriteValue = v.DefinedPageWriteValue;
         IsEditingVariable = true;
@@ -639,7 +668,15 @@ public partial class DevicesViewModel : ViewModelBase
             return;
         }
 
+        if (VarShowOnDefinedPage && string.IsNullOrWhiteSpace(VarDefinedPageDisplayName))
+        {
+            StatusMessage = "进入自定义页时请填写「自定义页名称」";
+            return;
+        }
+
+        var isBool = (DataType)VarDataType is DataType.Bool or DataType.Coil or DataType.Discrete;
         if (VarShowOnDefinedPage
+            && !isBool
             && VarDefinedPageOperation == (int)DefinedPageOperation.Write
             && string.IsNullOrWhiteSpace(VarDefinedPageWriteValue))
         {
@@ -665,10 +702,14 @@ public partial class DevicesViewModel : ViewModelBase
                 HttpKeyJsonPath = VarHttpKeyPath?.Trim() ?? string.Empty,
                 HttpValueJsonPath = VarHttpValuePath?.Trim() ?? string.Empty,
                 ShowOnDefinedPage = VarShowOnDefinedPage,
-                DefinedPageOperation = VarShowOnDefinedPage
+                DefinedPageDisplayName = VarShowOnDefinedPage
+                    ? (VarDefinedPageDisplayName?.Trim() ?? string.Empty)
+                    : string.Empty,
+                DefinedPageOperation = VarShowOnDefinedPage && !isBool
                     ? (DefinedPageOperation)VarDefinedPageOperation
                     : DefinedPageOperation.Read,
                 DefinedPageWriteValue = VarShowOnDefinedPage
+                                        && !isBool
                                         && VarDefinedPageOperation == (int)DefinedPageOperation.Write
                     ? (VarDefinedPageWriteValue?.Trim() ?? string.Empty)
                     : string.Empty,
@@ -743,6 +784,9 @@ public partial class DevicesViewModel : ViewModelBase
     private bool _mqttIsEnabled = true;
 
     [ObservableProperty]
+    private bool _mqttEnablePolling = true;
+
+    [ObservableProperty]
     private string _mqttBrokerIp = string.Empty;
 
     [ObservableProperty]
@@ -769,6 +813,9 @@ public partial class DevicesViewModel : ViewModelBase
     [ObservableProperty]
     private int _mqttOnlineStatusReportInterval = 30000;
 
+    [ObservableProperty]
+    private int _mqttTelemetryPublishInterval;
+
     [RelayCommand]
     private async Task LoadMqttAsync()
     {
@@ -778,6 +825,7 @@ public partial class DevicesViewModel : ViewModelBase
             if (mqtt is null)
             {
                 MqttIsEnabled = true;
+                MqttEnablePolling = true;
                 MqttBrokerIp = string.Empty;
                 MqttPort = 1883;
                 MqttClientId = string.Empty;
@@ -787,11 +835,13 @@ public partial class DevicesViewModel : ViewModelBase
                 MqttSubTopic = string.Empty;
                 MqttOnlineStatusTopic = string.Empty;
                 MqttOnlineStatusReportInterval = 30000;
+                MqttTelemetryPublishInterval = 0;
                 StatusMessage = "尚未配置 MQTT，可填写后保存";
                 return;
             }
 
             MqttIsEnabled = mqtt.IsEnabled;
+            MqttEnablePolling = mqtt.EnablePolling;
             MqttBrokerIp = mqtt.BrokerIp;
             MqttPort = mqtt.Port;
             MqttClientId = mqtt.ClientId;
@@ -801,7 +851,14 @@ public partial class DevicesViewModel : ViewModelBase
             MqttSubTopic = mqtt.SubTopic;
             MqttOnlineStatusTopic = mqtt.OnlineStatusTopic;
             MqttOnlineStatusReportInterval = mqtt.OnlineStatusReportInterval;
-            StatusMessage = mqtt.IsEnabled ? "已加载 MQTT 配置（已开启）" : "已加载 MQTT 配置（已关闭）";
+            MqttTelemetryPublishInterval = mqtt.TelemetryPublishInterval;
+            StatusMessage = mqtt.IsEnabled
+                ? mqtt.EnablePolling
+                    ? "已加载 MQTT（已连接上报 + 轮询）"
+                    : "已加载 MQTT（仅指令，不上报周期数据）"
+                : mqtt.EnablePolling
+                    ? "已加载 MQTT（轮询开，MQTT 关）"
+                    : "已加载 MQTT（轮询与 MQTT 均已关闭）";
         }
         catch (Exception ex)
         {
@@ -821,6 +878,7 @@ public partial class DevicesViewModel : ViewModelBase
             await _service.SaveMqttAsync(new MqttConfig
             {
                 IsEnabled = MqttIsEnabled,
+                EnablePolling = MqttEnablePolling,
                 BrokerIp = MqttBrokerIp?.Trim() ?? string.Empty,
                 Port = MqttPort,
                 ClientId = MqttClientId?.Trim() ?? string.Empty,
@@ -830,10 +888,15 @@ public partial class DevicesViewModel : ViewModelBase
                 SubTopic = MqttSubTopic?.Trim() ?? string.Empty,
                 OnlineStatusTopic = MqttOnlineStatusTopic?.Trim() ?? string.Empty,
                 OnlineStatusReportInterval = MqttOnlineStatusReportInterval,
+                TelemetryPublishInterval = MqttTelemetryPublishInterval < 0 ? 0 : MqttTelemetryPublishInterval,
             });
-            StatusMessage = MqttIsEnabled
-                ? "MQTT 配置已保存并开启采集上报"
-                : "MQTT 配置已保存；已关闭，客户端不参与采集上报";
+            StatusMessage = MqttEnablePolling
+                ? MqttIsEnabled
+                    ? "已保存：轮询开，MQTT 开（周期上报受遥测间隔限制）"
+                    : "已保存：轮询开，MQTT 关（仅本地快照）"
+                : MqttIsEnabled
+                    ? "已保存：轮询关，MQTT 开（可收指令写入，不上报周期数据）"
+                    : "已保存：轮询与 MQTT 均已关闭";
         }
         catch (Exception ex)
         {
@@ -1339,6 +1402,10 @@ public partial class DevicesViewModel : ViewModelBase
             ? ProtocolDisplay.ReadWriteNames[rw]
             : v.ReadWrite.ToString();
 
+        var definedPageModeText = !v.ShowOnDefinedPage
+            ? string.Empty
+            : FormatDefinedPageModeText(v);
+
         return new VariableListItem
         {
             Id = v.Id,
@@ -1348,13 +1415,38 @@ public partial class DevicesViewModel : ViewModelBase
             Description = v.Description,
             ReadWriteName = rwName,
             ShowOnDefinedPage = v.ShowOnDefinedPage,
-            DefinedPageModeText = !v.ShowOnDefinedPage
-                ? string.Empty
-                : v.DefinedPageOperation == DefinedPageOperation.Write
-                    ? $"写入={v.DefinedPageWriteValue}"
-                    : "读取",
+            DefinedPageModeText = definedPageModeText,
+            DisplayLine = BuildVariableDisplayLine(v, rwName, definedPageModeText),
             Source = v,
         };
+    }
+
+    private static string BuildVariableDisplayLine(DeviceVariable v, string rwName, string definedPageModeText)
+    {
+        var parts = new List<string>();
+        if (!string.IsNullOrWhiteSpace(v.Alias))
+            parts.Add(v.Alias.Trim());
+        if (!string.IsNullOrWhiteSpace(v.Address))
+            parts.Add(v.Address.Trim());
+        parts.Add(v.DataType.ToString());
+        parts.Add(rwName);
+        if (!string.IsNullOrWhiteSpace(v.Description))
+            parts.Add(v.Description.Trim());
+        if (v.ShowOnDefinedPage && !string.IsNullOrWhiteSpace(definedPageModeText))
+            parts.Add($"自定义·{definedPageModeText}");
+        return string.Join(" · ", parts);
+    }
+
+    private static string FormatDefinedPageModeText(DeviceVariable v)
+    {
+        var name = string.IsNullOrWhiteSpace(v.DefinedPageDisplayName)
+            ? v.Alias
+            : v.DefinedPageDisplayName;
+        if (v.DataType is DataType.Bool or DataType.Coil or DataType.Discrete)
+            return $"{name}·点动";
+        return v.DefinedPageOperation == DefinedPageOperation.Write
+            ? $"{name}·写入={v.DefinedPageWriteValue}"
+            : $"{name}·读取";
     }
 
     private static string FormatValue(object? value)

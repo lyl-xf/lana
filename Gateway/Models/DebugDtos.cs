@@ -1,5 +1,6 @@
 namespace Lana.Gateway.Models;
 
+/// <summary>调试读结果（GatewayDeviceService / IDeviceDebugApi）。</summary>
 public sealed class DebugReadResult
 {
     public bool Success { get; set; }
@@ -7,6 +8,7 @@ public sealed class DebugReadResult
     public object? Value { get; set; }
 }
 
+/// <summary>调试写结果。</summary>
 public sealed class DebugWriteResult
 {
     public bool Success { get; set; }
@@ -24,6 +26,7 @@ public sealed class DebugReadAllItem
     public object? Value { get; set; }
 }
 
+/// <summary>按物模型批量读结果。</summary>
 public sealed class DebugReadAllResult
 {
     public bool Success { get; set; }

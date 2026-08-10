@@ -18,7 +18,7 @@
     <TabControl SelectedIndex="{Binding SelectedTabIndex}">
       <!-- 配置 -->
       <TabItem Header="摄像头配置">
-        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="4,8,4,4">
           <Border Classes="glass-panel" Padding="14">
             <DockPanel>
               <StackPanel DockPanel.Dock="Top" Spacing="10">
@@ -55,7 +55,7 @@
                           </Border>
                         </Grid>
                         <TextBlock Classes="muted-text" FontSize="12" TextTrimming="CharacterEllipsis"
-                                   Text="{Binding RtspUrl}"/>
+                                   Text="{Binding SourceSummary}"/>
                         <Border Classes="list-item-divider"/>
                       </StackPanel>
                     </Border>
@@ -71,7 +71,7 @@
               <StackPanel Spacing="12">
                 <TextBlock Text="摄像头编辑" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
 
-                <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+                <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto"
                       RowSpacing="10" ColumnSpacing="12">
                   <TextBlock Text="名称" Classes="field-label" VerticalAlignment="Center"/>
                   <TextBox Grid.Column="1" Text="{Binding EditName}" Classes="neon-input"
@@ -102,7 +102,7 @@
                 </Grid>
 
                 <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
-                           Text="启用后可在「摄像头预览」中勾选该路进行播放。播放组件使用随应用分发的 LibVLC。"/>
+                           Text="当前仅支持网络摄像头（RTSP/HTTP）。本机/USB 摄像头不受支持。启用后可在预览页勾选播放。"/>
 
                 <StackPanel Orientation="Horizontal" Spacing="10">
                   <Button Classes="cta-button" Content="保存"
@@ -118,7 +118,7 @@
           <Border Grid.Column="1" Classes="glass-panel" Padding="16"
                   IsVisible="{Binding !IsEditing}">
             <StackPanel VerticalAlignment="Center" Spacing="8">
-              <TextBlock Text="选择左侧摄像头后点击「编辑」，或「新建」添加 RTSP 摄像头"
+              <TextBlock Text="选择左侧摄像头后点击「编辑」，或「新建」添加网络摄像头（RTSP/HTTP）"
                          Classes="muted-text" TextWrapping="Wrap" HorizontalAlignment="Center"/>
               <TextBlock Text="在「摄像头预览」页勾选要看的设备后再开始预览"
                          Classes="muted-text" FontSize="12" HorizontalAlignment="Center"/>
@@ -129,8 +129,8 @@
 
       <!-- 预览 -->
       <TabItem Header="摄像头预览">
-        <Grid ColumnDefinitions="2*,3*" ColumnSpacing="14" Margin="4,8,4,4">
-          <Border Classes="glass-panel" Padding="14" MinWidth="360">
+        <Grid ColumnDefinitions="*,*" ColumnSpacing="14" Margin="4,8,4,4">
+          <Border Classes="glass-panel" Padding="14">
             <DockPanel>
               <StackPanel DockPanel.Dock="Top" Spacing="10">
                 <TextBlock Text="选择预览设备" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
@@ -171,13 +171,13 @@
                           <StackPanel Grid.Column="2" Spacing="2" VerticalAlignment="Center">
                             <TextBlock Text="{Binding Name}" Classes="primary-text" FontWeight="SemiBold"
                                        TextTrimming="CharacterEllipsis"/>
-                            <TextBlock Classes="muted-text" FontSize="12" TextTrimming="CharacterEllipsis"
-                                       Text="{Binding RtspUrl}"/>
-                          </StackPanel>
-                          <Border Grid.Column="3" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center">
-                            <TextBlock Classes="accent-text" FontSize="11"
-                                       Text="{Binding IsEnabled, StringFormat='启用={0}'}"/>
-                          </Border>
+                          <TextBlock Classes="muted-text" FontSize="12" TextTrimming="CharacterEllipsis"
+                                     Text="{Binding SourceSummary}"/>
+                        </StackPanel>
+                        <Border Grid.Column="3" Classes="tag-chip" Padding="8,2" VerticalAlignment="Center">
+                          <TextBlock Classes="accent-text" FontSize="11"
+                                     Text="{Binding IsEnabled, StringFormat='启用={0}'}"/>
+                        </Border>
                         </Grid>
                       </Border>
                     </DataTemplate>

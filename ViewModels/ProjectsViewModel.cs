@@ -2,6 +2,7 @@ using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace Lana.ViewModels;
 
+/// <summary>遗留「项目」页占位，当前未挂到 Shell 导航。</summary>
 public partial class ProjectsViewModel : ViewModelBase
 {
     public string Title => "项目";

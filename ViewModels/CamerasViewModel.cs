@@ -8,11 +8,12 @@ using LibVLCSharp.Shared;
 
 namespace Lana.ViewModels;
 
+/// <summary>摄像头管理列表项；IsSelectedForPreview 控制右侧预览区。</summary>
 public partial class CameraListItem : ObservableObject
 {
     public long Id { get; init; }
     public string Name { get; init; } = string.Empty;
-    public string RtspUrl { get; init; } = string.Empty;
+    public string SourceSummary { get; init; } = string.Empty;
     public bool IsEnabled { get; init; }
     public int SortOrder { get; init; }
     public Camera Source { get; init; } = null!;
@@ -21,6 +22,10 @@ public partial class CameraListItem : ObservableObject
     private bool _isSelectedForPreview;
 }
 
+/// <summary>
+/// 单路预览槽：持有 MediaPlayer。停止前务必先触发 Detaching，让 VideoView 解绑，避免冻结。
+/// 定义页与摄像头管理页共用本类型。
+/// </summary>
 public partial class CameraPreviewSlot : ObservableObject, IDisposable
 {
     private Media? _media;
@@ -91,7 +96,7 @@ public partial class CameraPreviewSlot : ObservableObject, IDisposable
         }
     }
 
-    public Task PlayAsync(string url)
+    public Task PlayAsync(CameraPlayRequest request)
         => Task.Run(() =>
         {
             lock (_gate)
@@ -101,7 +106,7 @@ public partial class CameraPreviewSlot : ObservableObject, IDisposable
 
                 StopInternalUnlocked();
                 var host = LibVlcHost.Instance;
-                _media = host.CreateMedia(url);
+                _media = host.CreateMedia(request);
                 Player.Play(_media);
             }
 
@@ -177,6 +182,9 @@ public partial class CameraPreviewSlot : ObservableObject, IDisposable
     }
 }
 
+/// <summary>
+/// 摄像头管理（Admin）：CRUD + 多选预览。离开页面时 Shell 会调用 StopPreviewsIfAny。
+/// </summary>
 public partial class CamerasViewModel : ViewModelBase, IDisposable
 {
     private readonly CameraService _service;
@@ -289,7 +297,7 @@ public partial class CamerasViewModel : ViewModelBase, IDisposable
             {
                 Id = c.Id,
                 Name = c.Name,
-                RtspUrl = c.RtspUrl,
+                SourceSummary = FormatSourceSummary(c),
                 IsEnabled = c.IsEnabled,
                 SortOrder = c.SortOrder,
                 Source = c,
@@ -338,7 +346,7 @@ public partial class CamerasViewModel : ViewModelBase, IDisposable
         _isNew = false;
         EditId = c.Id;
         EditName = c.Name;
-        EditRtspUrl = c.RtspUrl;
+        EditRtspUrl = string.IsNullOrWhiteSpace(c.RtspUrl) ? "rtsp://" : c.RtspUrl;
         EditUsername = c.Username;
         EditPassword = c.Password;
         EditDescription = c.Description;
@@ -347,6 +355,11 @@ public partial class CamerasViewModel : ViewModelBase, IDisposable
         IsEditing = true;
         StatusMessage = $"编辑摄像头 #{c.Id}";
     }
+
+    private static string FormatSourceSummary(Camera c)
+        => c.SourceType == CameraSourceType.Local
+            ? $"本机/USB（不受支持）· {c.LocalDeviceName}"
+            : c.RtspUrl;
 
     [RelayCommand]
     private void CancelEdit()
@@ -368,7 +381,9 @@ public partial class CamerasViewModel : ViewModelBase, IDisposable
             {
                 Id = EditId,
                 Name = EditName,
+                SourceType = CameraSourceType.Network,
                 RtspUrl = EditRtspUrl,
+                LocalDeviceName = string.Empty,
                 Username = EditUsername,
                 Password = EditPassword,
                 Description = EditDescription,
@@ -550,8 +565,7 @@ public partial class CamerasViewModel : ViewModelBase, IDisposable
             {
                 var slot = new CameraPreviewSlot(item.Id, item.Name, host.CreatePlayer());
                 PreviewSlots.Add(slot);
-                var url = CameraService.BuildPlayUrl(item.Source);
-                playTasks.Add(slot.PlayAsync(url));
+                playTasks.Add(slot.PlayAsync(CameraService.BuildPlayRequest(item.Source)));
             }
 
             RefreshPreviewLayout();

@@ -7,7 +7,11 @@ using Lana.Gateway.Protocol;
 namespace Lana.Gateway.Services;
 
 /// <summary>
-/// 网关设备 / 变量 / MQTT / 调试 / 备份的高层 API（供 UI 调用）。
+/// 网关设备 / 变量 / MQTT / 调试 / 备份的高层 API（供 UI 与配置管理调用）。
+/// <para>
+/// UI 即时读写请优先走 <see cref="IDeviceDebugApi"/>（会记历史）；
+/// 本类 Debug* 为底层实现，采集 Worker 使用协议会话而非本类。
+/// </para>
 /// </summary>
 public sealed class GatewayDeviceService
 {
@@ -378,6 +382,8 @@ public sealed class GatewayDeviceService
             config.Port = 1883;
         if (config.OnlineStatusReportInterval <= 0)
             config.OnlineStatusReportInterval = 30000;
+        if (config.TelemetryPublishInterval < 0)
+            config.TelemetryPublishInterval = 0;
     }
 
     private static ProtocolDataType ToProtocolDataType(DataType dataType)
@@ -412,6 +418,7 @@ public sealed class GatewayDeviceService
             HttpKeyJsonPath = v.HttpKeyJsonPath,
             HttpValueJsonPath = v.HttpValueJsonPath,
             ShowOnDefinedPage = v.ShowOnDefinedPage,
+            DefinedPageDisplayName = v.DefinedPageDisplayName,
             DefinedPageOperation = v.DefinedPageOperation,
             DefinedPageWriteValue = v.DefinedPageWriteValue,
         }).ToList(),
@@ -447,6 +454,7 @@ public sealed class GatewayDeviceService
         HttpKeyJsonPath = dto.HttpKeyJsonPath,
         HttpValueJsonPath = dto.HttpValueJsonPath,
         ShowOnDefinedPage = dto.ShowOnDefinedPage,
+        DefinedPageDisplayName = dto.DefinedPageDisplayName ?? string.Empty,
         DefinedPageOperation = dto.DefinedPageOperation,
         DefinedPageWriteValue = dto.DefinedPageWriteValue ?? string.Empty,
     };
@@ -454,6 +462,7 @@ public sealed class GatewayDeviceService
     private static MqttBackupDto ToMqttBackup(MqttConfig mqtt) => new()
     {
         IsEnabled = mqtt.IsEnabled,
+        EnablePolling = mqtt.EnablePolling,
         BrokerIp = mqtt.BrokerIp,
         Port = mqtt.Port,
         ClientId = mqtt.ClientId,
@@ -463,11 +472,13 @@ public sealed class GatewayDeviceService
         SubTopic = mqtt.SubTopic,
         OnlineStatusTopic = mqtt.OnlineStatusTopic,
         OnlineStatusReportInterval = mqtt.OnlineStatusReportInterval,
+        TelemetryPublishInterval = mqtt.TelemetryPublishInterval,
     };
 
     private static MqttConfig FromMqttBackup(MqttBackupDto dto) => new()
     {
         IsEnabled = dto.IsEnabled,
+        EnablePolling = dto.EnablePolling,
         BrokerIp = dto.BrokerIp,
         Port = dto.Port,
         ClientId = dto.ClientId,
@@ -477,5 +488,6 @@ public sealed class GatewayDeviceService
         SubTopic = dto.SubTopic,
         OnlineStatusTopic = dto.OnlineStatusTopic,
         OnlineStatusReportInterval = dto.OnlineStatusReportInterval,
+        TelemetryPublishInterval = dto.TelemetryPublishInterval,
     };
 }

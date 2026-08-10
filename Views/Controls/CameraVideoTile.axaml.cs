@@ -5,6 +5,9 @@ using LibVLCSharp.Avalonia;
 
 namespace Lana.Views.Controls;
 
+/// <summary>
+/// 摄像头预览瓦片：绑定 <see cref="CameraPreviewSlot"/>，在 Detaching 时先解绑 VideoView 再停播。
+/// </summary>
 public partial class CameraVideoTile : UserControl
 {
     private CameraPreviewSlot? _boundSlot;

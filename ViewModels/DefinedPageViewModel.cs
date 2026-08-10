@@ -1,4 +1,5 @@
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
@@ -8,14 +9,21 @@ using Lana.Gateway.Services;
 
 namespace Lana.ViewModels;
 
+/// <summary>
+/// 定义页按钮行为类型。
+/// 扩展新行为：增加枚举 → CreateButton 判定 → ExecuteButtonAsync / 点动逻辑 → AXAML 模板。
+/// </summary>
 public enum DefinedButtonKind
 {
+    /// <summary>单击读取地址并显示结果。</summary>
     Read,
-    WriteTrue,
-    WriteFalse,
+    /// <summary>单击写入预配置的 DefinedPageWriteValue。</summary>
     WriteValue,
+    /// <summary>按下写 true、松开写 false（Bool/Coil/Discrete）。</summary>
+    MomentaryBool,
 }
 
+/// <summary>定义页上的单个操作按钮模型（由物模型变量生成）。</summary>
 public partial class DefinedVariableAction : ObservableObject
 {
     public long VariableId { get; init; }
@@ -25,27 +33,59 @@ public partial class DefinedVariableAction : ObservableObject
     public DataType DataType { get; init; }
     public DefinedButtonKind Kind { get; init; }
     public string WriteValue { get; init; } = string.Empty;
+    /// <summary>点动 Bool：使用 Border + Pointer 事件（Button 会吞掉 PointerPressed）。</summary>
+    public bool IsMomentaryBool => Kind == DefinedButtonKind.MomentaryBool;
+    /// <summary>非点动：使用普通 Button + Command。</summary>
+    public bool IsClickAction => Kind != DefinedButtonKind.MomentaryBool;
 
     [ObservableProperty]
     private bool _isBusy;
+
+    [ObservableProperty]
+    private bool _isPressed;
 }
 
+/// <summary>
+/// 「定义页面」：上半区播放已启用摄像头，下半区左状态右按钮。
+/// <para>
+/// 按钮来源：活跃设备中 <c>ShowOnDefinedPage=true</c> 的变量（设备管理 → 物模型配置）。
+/// 所有读写经 <see cref="IDeviceDebugApi"/>，Source=<c>DefinedPage</c>。
+/// </para>
+/// <para>
+/// 自定义扩展：改 <see cref="LoadCustomButtonsAsync"/> / <see cref="CreateButton"/> /
+/// 执行逻辑；摄像头网格见 PreviewSlots / StartCamerasAsync。
+/// </para>
+/// </summary>
 public partial class DefinedPageViewModel : ViewModelBase, IDisposable
 {
+    private static readonly ObservableCollection<DeviceLiveGroup> EmptyStatusGroups = [];
+
     private readonly GatewayDeviceService _deviceService;
     private readonly IDeviceDebugApi _debugApi;
     private readonly CameraService _cameraService;
+    private readonly DeviceDataSnapshotStore? _liveState;
     private readonly SemaphoreSlim _previewGate = new(1, 1);
+    private readonly Dictionary<long, SemaphoreSlim> _momentaryGates = new();
     private bool _disposed;
 
     public DefinedPageViewModel(
         GatewayDeviceService deviceService,
         IDeviceDebugApi debugApi,
-        CameraService cameraService)
+        CameraService cameraService,
+        IDeviceDataSnapshotStore? liveState = null)
     {
         _deviceService = deviceService;
         _debugApi = debugApi;
         _cameraService = cameraService;
+        _liveState = liveState as DeviceDataSnapshotStore;
+        if (_liveState is not null)
+        {
+            _liveState.PropertyChanged += OnLiveStatePropertyChanged;
+            HasStatusData = _liveState.HasData;
+            if (HasStatusData)
+                StatusPanelHint = "数据来自后台轮询（绑定共享状态，只读展示）";
+        }
+
         _ = LibVlcHost.EnsureInitializedAsync();
     }
 
@@ -62,9 +102,21 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
 
     public ObservableCollection<DefinedVariableAction> VariableActions { get; } = [];
 
+    /// <summary>左侧设备状态（绑定共享 LiveState，Worker 原地更新属性）。</summary>
+    public ObservableCollection<DeviceLiveGroup> StatusGroups
+        => _liveState?.Groups ?? EmptyStatusGroups;
+
+    [ObservableProperty]
+    private bool _hasStatusData;
+
+    [ObservableProperty]
+    private string _statusPanelHint = "开启「轮询查询」后将显示采集数据";
+
+    /// <summary>Shell 切入本页时调用：刷新按钮与摄像头预览。</summary>
     public async Task OnEnteredAsync()
         => await RefreshAllAsync();
 
+    /// <summary>Shell 离开本页时调用：停止预览。</summary>
     public void StopPreviewsIfAny()
         => _ = StopAllPreviewsAsync();
 
@@ -78,9 +130,7 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
         {
             IsBusy = true;
             await Task.WhenAll(LoadCustomButtonsAsync(), StartCamerasAsync());
-            StatusMessage = VariableActions.Count == 0
-                ? "暂无自定义按钮。请在「设备管理 → 物模型」中开启「进入自定义页」。"
-                : $"已加载 {VariableActions.Count} 个操作按钮 · 摄像头 {PreviewSlots.Count} 路";
+            StatusMessage = BuildStatusSummary();
         }
         catch (Exception ex)
         {
@@ -92,6 +142,34 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
         }
     }
 
+    private string BuildStatusSummary()
+    {
+        var parts = new List<string>();
+        if (StatusGroups.Count > 0)
+            parts.Add($"状态 {StatusGroups.Sum(g => g.Points.Count)} 项");
+        if (VariableActions.Count > 0)
+            parts.Add($"{VariableActions.Count} 个操作按钮");
+        if (PreviewSlots.Count > 0)
+            parts.Add($"摄像头 {PreviewSlots.Count} 路");
+
+        if (parts.Count == 0)
+            return "暂无数据。请开启轮询或在物模型中配置「进入自定义页」。";
+
+        return string.Join(" · ", parts);
+    }
+
+    private void OnLiveStatePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (_disposed || _liveState is null || e.PropertyName != nameof(DeviceDataSnapshotStore.HasData))
+            return;
+
+        HasStatusData = _liveState.HasData;
+        StatusPanelHint = HasStatusData
+            ? "数据来自后台轮询（绑定共享状态，只读展示）"
+            : "暂无轮询数据。请在设备管理 → MQTT 中开启「轮询查询」，并确保设备采集周期 > 0";
+    }
+
+    /// <summary>从设备/物模型加载自定义按钮列表（仅 ShowOnDefinedPage）。</summary>
     private async Task LoadCustomButtonsAsync()
     {
         VariableActions.Clear();
@@ -100,48 +178,71 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
         {
             var vars = await _deviceService.ListVariablesAsync(device.Id);
             foreach (var v in vars.Where(x => x.ShowOnDefinedPage)
-                         .OrderBy(x => x.Alias).ThenBy(x => x.Address).ThenBy(x => x.Id))
+                         .OrderBy(x => x.DefinedPageDisplayName)
+                         .ThenBy(x => x.Alias)
+                         .ThenBy(x => x.Address)
+                         .ThenBy(x => x.Id))
             {
-                foreach (var action in CreateButtons(device.Id, v))
-                    VariableActions.Add(action);
+                VariableActions.Add(CreateButton(device.Id, v));
             }
         }
     }
 
-    private static IEnumerable<DefinedVariableAction> CreateButtons(long deviceId, DeviceVariable v)
+    /// <summary>
+    /// 按数据类型与 DefinedPageOperation 生成按钮模型。
+    /// Bool/Coil/Discrete → 点动；其余 Write → 写默认值；否则读。
+    /// </summary>
+    private static DefinedVariableAction CreateButton(long deviceId, DeviceVariable v)
     {
-        var title = string.IsNullOrWhiteSpace(v.Alias) ? v.Address : v.Alias;
+        var title = ResolveDisplayName(v);
+        var isBool = v.DataType is DataType.Bool or DataType.Coil or DataType.Discrete;
+
+        if (isBool)
+        {
+            return new DefinedVariableAction
+            {
+                VariableId = v.Id,
+                DeviceId = deviceId,
+                ButtonText = title,
+                Address = v.Address,
+                DataType = v.DataType,
+                Kind = DefinedButtonKind.MomentaryBool,
+            };
+        }
 
         if (v.DefinedPageOperation == DefinedPageOperation.Write)
         {
-            yield return Make(
-                deviceId,
-                v,
-                title,
-                DefinedButtonKind.WriteValue,
-                v.DefinedPageWriteValue ?? string.Empty);
-            yield break;
+            return new DefinedVariableAction
+            {
+                VariableId = v.Id,
+                DeviceId = deviceId,
+                ButtonText = title,
+                Address = v.Address,
+                DataType = v.DataType,
+                Kind = DefinedButtonKind.WriteValue,
+                WriteValue = v.DefinedPageWriteValue ?? string.Empty,
+            };
         }
 
-        yield return Make(deviceId, v, title, DefinedButtonKind.Read, string.Empty);
-    }
-
-    private static DefinedVariableAction Make(
-        long deviceId,
-        DeviceVariable v,
-        string text,
-        DefinedButtonKind kind,
-        string writeValue)
-        => new()
+        return new DefinedVariableAction
         {
             VariableId = v.Id,
             DeviceId = deviceId,
-            ButtonText = text,
+            ButtonText = title,
             Address = v.Address,
             DataType = v.DataType,
-            Kind = kind,
-            WriteValue = writeValue,
+            Kind = DefinedButtonKind.Read,
         };
+    }
+
+    private static string ResolveDisplayName(DeviceVariable v)
+    {
+        if (!string.IsNullOrWhiteSpace(v.DefinedPageDisplayName))
+            return v.DefinedPageDisplayName.Trim();
+        if (!string.IsNullOrWhiteSpace(v.Alias))
+            return v.Alias.Trim();
+        return v.Address;
+    }
 
     private async Task StartCamerasAsync()
     {
@@ -162,7 +263,7 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
             {
                 var slot = new CameraPreviewSlot(camera.Id, camera.Name, host.CreatePlayer());
                 PreviewSlots.Add(slot);
-                playTasks.Add(slot.PlayAsync(CameraService.BuildPlayUrl(camera)));
+                playTasks.Add(slot.PlayAsync(CameraService.BuildPlayRequest(camera)));
             }
 
             RefreshPreviewLayout();
@@ -226,7 +327,7 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
     [RelayCommand]
     private async Task ExecuteButtonAsync(DefinedVariableAction? action)
     {
-        if (action is null || action.IsBusy)
+        if (action is null || action.IsBusy || action.IsMomentaryBool)
             return;
 
         try
@@ -248,8 +349,6 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
                         : $"{action.ButtonText} 读取失败：{result.Error}";
                     break;
                 }
-                case DefinedButtonKind.WriteTrue:
-                case DefinedButtonKind.WriteFalse:
                 case DefinedButtonKind.WriteValue:
                 {
                     if (string.IsNullOrWhiteSpace(action.WriteValue))
@@ -281,6 +380,78 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
         }
     }
 
+    /// <summary>定义页 Bool 按下：写入 true（由 View 指针事件调用）。</summary>
+    public Task PressBoolAsync(DefinedVariableAction? action)
+        => WriteMomentaryAsync(action, pressed: true);
+
+    /// <summary>定义页 Bool 松开 / 失焦：写入 false。</summary>
+    public Task ReleaseBoolAsync(DefinedVariableAction? action)
+        => WriteMomentaryAsync(action, pressed: false);
+
+    /// <summary>点动写：同一变量串行，保证先 true 后 false。</summary>
+    private async Task WriteMomentaryAsync(DefinedVariableAction? action, bool pressed)
+    {
+        if (action is null || !action.IsMomentaryBool)
+            return;
+
+        // 按下时若已按下则忽略；松开时若从未按下则忽略
+        if (pressed)
+        {
+            if (action.IsPressed)
+                return;
+            action.IsPressed = true;
+        }
+        else
+        {
+            if (!action.IsPressed)
+                return;
+            action.IsPressed = false;
+        }
+
+        var gate = GetMomentaryGate(action.VariableId);
+        await gate.WaitAsync();
+        var value = pressed ? "true" : "false";
+        try
+        {
+            action.IsBusy = true;
+            StatusMessage = pressed
+                ? $"{action.ButtonText} 按下 → 写入 true…"
+                : $"{action.ButtonText} 松开 → 写入 false…";
+
+            var result = await _debugApi.WriteAsync(
+                action.DeviceId,
+                action.Address,
+                action.DataType,
+                value,
+                new DeviceDebugContext { Source = "DefinedPage" });
+
+            StatusMessage = result.Success
+                ? $"{action.ButtonText} {(pressed ? "按下" : "松开")}成功（{value}）"
+                : $"{action.ButtonText} {(pressed ? "按下" : "松开")}失败：{result.Error}";
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"{action.ButtonText} {(pressed ? "按下" : "松开")}异常：{ex.Message}";
+        }
+        finally
+        {
+            action.IsBusy = false;
+            gate.Release();
+        }
+    }
+
+    private SemaphoreSlim GetMomentaryGate(long variableId)
+    {
+        lock (_momentaryGates)
+        {
+            if (_momentaryGates.TryGetValue(variableId, out var gate))
+                return gate;
+            gate = new SemaphoreSlim(1, 1);
+            _momentaryGates[variableId] = gate;
+            return gate;
+        }
+    }
+
     private static string FormatValue(object? value)
         => value switch
         {
@@ -295,6 +466,9 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
         if (_disposed)
             return;
         _disposed = true;
+
+        if (_liveState is not null)
+            _liveState.PropertyChanged -= OnLiveStatePropertyChanged;
 
         var slots = PreviewSlots.ToList();
         PreviewSlots.Clear();
@@ -312,5 +486,11 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
         }
 
         _previewGate.Dispose();
+        lock (_momentaryGates)
+        {
+            foreach (var gate in _momentaryGates.Values)
+                gate.Dispose();
+            _momentaryGates.Clear();
+        }
     }
 }

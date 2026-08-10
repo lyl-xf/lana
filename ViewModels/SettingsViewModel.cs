@@ -7,6 +7,7 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Lana.ViewModels;
 
+/// <summary>设置页：主题、动画、改密。键名见 SettingKeys。</summary>
 public partial class SettingsViewModel : ViewModelBase
 {
     private readonly ISettingsService _settingsService;
@@ -59,9 +60,6 @@ public partial class SettingsViewModel : ViewModelBase
     [ObservableProperty]
     private string _statusMessage = "设置已连接到 SQLite";
 
-    [ObservableProperty]
-    private string _databasePath = string.Empty;
-
     public bool IsAuroraSelected => !ThemeManager.IsSnow(SelectedTheme);
 
     public bool IsSnowSelected => ThemeManager.IsSnow(SelectedTheme);
@@ -73,7 +71,6 @@ public partial class SettingsViewModel : ViewModelBase
         DisplayName = user.DisplayName;
         Username = user.Username;
         Role = user.Role;
-        DatabasePath = settingsService.DatabasePath;
         _ = LoadAsync();
     }
 

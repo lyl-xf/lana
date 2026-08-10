@@ -1,10 +1,12 @@
 namespace Lana.Gateway.Models;
 
 /// <summary>
-/// 协议 / 数据类型 / 读写权限的展示名称与分类辅助。
+/// 协议 / 数据类型 / 读写权限的展示名称与分类辅助（设备管理 UI）。
+/// 新增 ProtocolType 时同步扩展 ProtocolNames 与 IsSerial/IsTcp/IsPlc 等判断。
 /// </summary>
 public static class ProtocolDisplay
 {
+    /// <summary>与 ProtocolType 枚举顺序一一对应。</summary>
     public static readonly string[] ProtocolNames =
     [
         "ModbusTcp",

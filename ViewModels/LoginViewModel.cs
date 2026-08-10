@@ -6,6 +6,9 @@ using Lana.Services;
 
 namespace Lana.ViewModels;
 
+/// <summary>
+/// 登录/注册页。成功后回调 MainViewModel 进入 Shell 并启动采集 Worker。
+/// </summary>
 public partial class LoginViewModel : ViewModelBase
 {
     private readonly IAuthService _authService;

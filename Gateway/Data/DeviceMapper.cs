@@ -6,7 +6,7 @@ using Lana.Gateway.Models;
 namespace Lana.Gateway.Data;
 
 /// <summary>
-/// 设备表 SQL Mapper。
+/// 设备表 SQL Mapper（Dapper）。新增列时同步 Sql 常量与参数对象，并配合 GatewaySchema 迁移。
 /// </summary>
 public sealed class DeviceMapper
 {

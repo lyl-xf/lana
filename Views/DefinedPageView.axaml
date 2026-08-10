@@ -1,6 +1,7 @@
 <UserControl xmlns="https://github.com/avaloniaui"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:Lana.ViewModels"
+             xmlns:live="using:Lana.Gateway.Services"
              xmlns:controls="using:Lana.Views.Controls"
              x:Class="Lana.Views.DefinedPageView"
              x:Name="Root"
@@ -38,39 +39,122 @@
       </DockPanel>
     </Border>
 
-    <!-- 下半：自定义操作按钮 -->
-    <Border Grid.Row="1" Classes="glass-panel" Padding="12">
-      <DockPanel>
-        <TextBlock DockPanel.Dock="Bottom"
-                   Text="{Binding StatusMessage}"
-                   Classes="accent-text"
-                   FontSize="12"
-                   TextWrapping="Wrap"
-                   Margin="0,10,0,0"/>
+    <!-- 下半：状态 / 操作 各半宽，独立面板 -->
+    <Grid Grid.Row="1" RowDefinitions="*,Auto" RowSpacing="8">
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+        <!-- 左：设备状态 -->
+        <Border Classes="glass-panel" Padding="10">
+          <DockPanel LastChildFill="True">
+            <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,6">
+              <TextBlock Text="设备状态" Classes="primary-text" FontWeight="SemiBold" FontSize="14"/>
+              <TextBlock Text="{Binding StatusPanelHint}" Classes="muted-text" FontSize="10" TextWrapping="Wrap"/>
+            </StackPanel>
 
-        <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
-          <ItemsControl ItemsSource="{Binding VariableActions}">
-            <ItemsControl.ItemsPanel>
-              <ItemsPanelTemplate>
-                <WrapPanel/>
-              </ItemsPanelTemplate>
-            </ItemsControl.ItemsPanel>
-            <ItemsControl.ItemTemplate>
-              <DataTemplate x:DataType="vm:DefinedVariableAction">
-                <Button Classes="cta-button"
-                        Content="{Binding ButtonText}"
-                        MinWidth="128"
-                        MinHeight="44"
-                        Margin="0,0,10,10"
-                        Padding="16,10"
-                        Command="{Binding #Root.((vm:DefinedPageViewModel)DataContext).ExecuteButtonCommand}"
-                        CommandParameter="{Binding}"
-                        IsEnabled="{Binding !IsBusy}"/>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </ScrollViewer>
-      </DockPanel>
-    </Border>
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+              <Panel>
+                <TextBlock Text="等待轮询数据…"
+                           Classes="muted-text"
+                           FontSize="11"
+                           IsVisible="{Binding !HasStatusData}"
+                           Margin="0,4"/>
+
+                <ItemsControl ItemsSource="{Binding StatusGroups}"
+                              IsVisible="{Binding HasStatusData}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="live:DeviceLiveGroup">
+                      <StackPanel Margin="0,0,0,8" Spacing="2">
+                        <Grid ColumnDefinitions="*,Auto" Margin="0,0,0,2">
+                          <TextBlock Text="{Binding DeviceName}" Classes="secondary-text"
+                                     FontWeight="SemiBold" FontSize="12"/>
+                          <TextBlock Grid.Column="1" Text="{Binding UpdatedText}"
+                                     Classes="muted-text" FontSize="10" VerticalAlignment="Center"/>
+                        </Grid>
+                        <ItemsControl ItemsSource="{Binding Points}">
+                          <ItemsControl.ItemsPanel>
+                            <ItemsPanelTemplate>
+                              <UniformGrid Columns="2"/>
+                            </ItemsPanelTemplate>
+                          </ItemsControl.ItemsPanel>
+                          <ItemsControl.ItemTemplate>
+                            <DataTemplate x:DataType="live:DeviceLivePoint">
+                              <Grid ColumnDefinitions="*,Auto" Margin="0,1,8,1" ColumnSpacing="8">
+                                <TextBlock Text="{Binding Label}" Classes="muted-text" FontSize="11"
+                                           TextWrapping="Wrap" VerticalAlignment="Center"/>
+                                <TextBlock Grid.Column="1" Text="{Binding ValueText}"
+                                           Foreground="{DynamicResource AppAccentBrush}"
+                                           FontWeight="SemiBold" FontSize="11"
+                                           VerticalAlignment="Center" HorizontalAlignment="Right"/>
+                              </Grid>
+                            </DataTemplate>
+                          </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                      </StackPanel>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </Panel>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+
+        <!-- 右：设备操作 -->
+        <Border Grid.Column="1" Classes="glass-panel" Padding="12">
+          <DockPanel LastChildFill="True">
+            <StackPanel DockPanel.Dock="Top" Spacing="2" Margin="0,0,0,8">
+              <TextBlock Text="操作" Classes="primary-text" FontWeight="SemiBold" FontSize="14"/>
+              <TextBlock Text="点击下方按钮执行读写或点动控制" Classes="muted-text" FontSize="10"/>
+            </StackPanel>
+            <ScrollViewer HorizontalScrollBarVisibility="Disabled" VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding VariableActions}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <WrapPanel/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DefinedVariableAction">
+                    <Panel Margin="0,0,8,8">
+                      <Button Classes="cta-button"
+                              Content="{Binding ButtonText}"
+                              MinWidth="120"
+                              MinHeight="40"
+                              Padding="12,8"
+                              IsVisible="{Binding IsClickAction}"
+                              Command="{Binding #Root.((vm:DefinedPageViewModel)DataContext).ExecuteButtonCommand}"
+                              CommandParameter="{Binding}"
+                              IsEnabled="{Binding !IsBusy}"/>
+
+                      <Border Classes="cta-button"
+                              MinWidth="120"
+                              MinHeight="40"
+                              Padding="12,8"
+                              Cursor="Hand"
+                              IsVisible="{Binding IsMomentaryBool}"
+                              Background="{DynamicResource AppCtaGradientBrush}"
+                              CornerRadius="14"
+                              PointerPressed="OnMomentaryPressed"
+                              PointerReleased="OnMomentaryReleased"
+                              PointerCaptureLost="OnMomentaryCaptureLost">
+                        <TextBlock Text="{Binding ButtonText}"
+                                   Classes="on-accent-text"
+                                   FontWeight="SemiBold"
+                                   HorizontalAlignment="Center"
+                                   VerticalAlignment="Center"/>
+                      </Border>
+                    </Panel>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </DockPanel>
+        </Border>
+      </Grid>
+
+      <TextBlock Grid.Row="1"
+                 Text="{Binding StatusMessage}"
+                 Classes="accent-text"
+                 FontSize="12"
+                 TextWrapping="Wrap"/>
+    </Grid>
   </Grid>
 </UserControl>

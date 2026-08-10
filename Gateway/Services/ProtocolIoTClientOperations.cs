@@ -4,6 +4,10 @@ using Lana.Gateway.Protocol;
 
 namespace Lana.Gateway.Services;
 
+/// <summary>
+/// IoTClient 动态读写：按协议区分 Modbus（地址/站号/功能码）与 PLC。
+/// 扩展新 DataType 时在此 switch 补齐 Read/Write 分支。
+/// </summary>
 public static class ProtocolIoTClientOperations
 {
     private static bool ParseLooseBool(string? s) =>

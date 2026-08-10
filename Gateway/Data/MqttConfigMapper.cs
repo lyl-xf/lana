@@ -42,6 +42,7 @@ public sealed class MqttConfigMapper
     {
         config.Id,
         IsEnabled = config.IsEnabled ? 1 : 0,
+        EnablePolling = config.EnablePolling ? 1 : 0,
         BrokerIp = config.BrokerIp ?? string.Empty,
         config.Port,
         ClientId = config.ClientId ?? string.Empty,
@@ -51,13 +52,14 @@ public sealed class MqttConfigMapper
         SubTopic = config.SubTopic ?? string.Empty,
         OnlineStatusTopic = config.OnlineStatusTopic ?? string.Empty,
         config.OnlineStatusReportInterval,
+        config.TelemetryPublishInterval,
     };
 
     public static class Sql
     {
         public const string Columns = """
-            Id, IsEnabled, BrokerIp, Port, ClientId, Username, Password, PubTopic, SubTopic,
-            OnlineStatusTopic, OnlineStatusReportInterval
+            Id, IsEnabled, EnablePolling, BrokerIp, Port, ClientId, Username, Password, PubTopic, SubTopic,
+            OnlineStatusTopic, OnlineStatusReportInterval, TelemetryPublishInterval
             """;
 
         public const string GetFirst = $"""
@@ -69,17 +71,18 @@ public sealed class MqttConfigMapper
 
         public const string Insert = """
             INSERT INTO MqttConfigs (
-                IsEnabled, BrokerIp, Port, ClientId, Username, Password, PubTopic, SubTopic,
-                OnlineStatusTopic, OnlineStatusReportInterval
+                IsEnabled, EnablePolling, BrokerIp, Port, ClientId, Username, Password, PubTopic, SubTopic,
+                OnlineStatusTopic, OnlineStatusReportInterval, TelemetryPublishInterval
             ) VALUES (
-                @IsEnabled, @BrokerIp, @Port, @ClientId, @Username, @Password, @PubTopic, @SubTopic,
-                @OnlineStatusTopic, @OnlineStatusReportInterval
+                @IsEnabled, @EnablePolling, @BrokerIp, @Port, @ClientId, @Username, @Password, @PubTopic, @SubTopic,
+                @OnlineStatusTopic, @OnlineStatusReportInterval, @TelemetryPublishInterval
             );
             """;
 
         public const string Update = """
             UPDATE MqttConfigs SET
                 IsEnabled = @IsEnabled,
+                EnablePolling = @EnablePolling,
                 BrokerIp = @BrokerIp,
                 Port = @Port,
                 ClientId = @ClientId,
@@ -88,7 +91,8 @@ public sealed class MqttConfigMapper
                 PubTopic = @PubTopic,
                 SubTopic = @SubTopic,
                 OnlineStatusTopic = @OnlineStatusTopic,
-                OnlineStatusReportInterval = @OnlineStatusReportInterval
+                OnlineStatusReportInterval = @OnlineStatusReportInterval,
+                TelemetryPublishInterval = @TelemetryPublishInterval
             WHERE Id = @Id;
             """;
     }

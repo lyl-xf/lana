@@ -2,6 +2,9 @@ using Lana.Gateway.Models;
 
 namespace Lana.Gateway.Helpers;
 
+/// <summary>
+/// Modbus 地址解析：支持「地址」「站号;地址」「站号;地址;功能码」等形式。
+/// </summary>
 public static class ModbusHelper
 {
     public static (string address, byte stationNumber, byte functionCode) ParseModbusAddress(

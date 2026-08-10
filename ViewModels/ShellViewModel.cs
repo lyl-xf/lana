@@ -8,10 +8,28 @@ using CommunityToolkit.Mvvm.Input;
 
 namespace Lana.ViewModels;
 
+/// <summary>
+/// 主壳：侧栏导航 + 当前页面内容。
+/// <para>
+/// 页面注册在构造函数的 <c>_pages</c> 字典中；侧栏按钮绑定 Navigate* 命令（见 ShellView.axaml）。
+/// Admin 才注册「设备管理」「摄像头管理」。
+/// </para>
+/// <para>
+/// <b>新增自定义页面步骤：</b>
+/// <list type="number">
+/// <item>新建 XxxViewModel : ViewModelBase、XxxView（命名遵循 ViewLocator）。</item>
+/// <item>在本类构造函数中 <c>new</c> 并放入 <c>_pages</c>；需要的服务从 MainViewModel 经本构造函数传入。</item>
+/// <item>增加 SelectedNav 相关属性、CurrentPageTitle 分支、NavigateXxx 命令。</item>
+/// <item>在 ShellView.axaml 增加侧栏按钮；若需权限，参考 Devices/Cameras 的 IsAdmin 判断。</item>
+/// <item>离开页面若需释放资源（如预览），在 <see cref="Navigate"/> 中补充 Stop 逻辑。</item>
+/// </list>
+/// </para>
+/// </summary>
 public partial class ShellViewModel : ViewModelBase, IDisposable
 {
     private readonly IAuthService _authService;
     private readonly Action _onLogout;
+    /// <summary>导航键 → 页面 VM。键需与 SelectedNav / Navigate 一致。</summary>
     private readonly Dictionary<string, ViewModelBase> _pages;
     private readonly CamerasViewModel? _camerasViewModel;
     private readonly DefinedPageViewModel _definedPageViewModel;
@@ -73,14 +91,16 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         GatewayDeviceService deviceService,
         CameraService cameraService,
         IDeviceDebugApi debugApi,
-        DeviceOperationHistoryService historyService)
+        DeviceOperationHistoryService historyService,
+        IDeviceDataSnapshotStore snapshotStore)
     {
         _authService = authService;
         _onLogout = onLogout;
         _userDisplayName = user.DisplayName;
         _userRole = user.Role;
-        _definedPageViewModel = new DefinedPageViewModel(deviceService, debugApi, cameraService);
+        _definedPageViewModel = new DefinedPageViewModel(deviceService, debugApi, cameraService, snapshotStore);
 
+        // 全员可见页面
         _pages = new Dictionary<string, ViewModelBase>
         {
             ["Home"] = new HomeViewModel(user),
@@ -89,6 +109,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
             ["Settings"] = new SettingsViewModel(user, settingsService, authService),
         };
 
+        // 管理页：仅 Admin 注册，Member 侧栏按钮应绑定 IsVisible=IsAdmin
         if (IsAdmin)
         {
             _camerasViewModel = new CamerasViewModel(cameraService);
@@ -129,6 +150,9 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         IsSidebarExpanded = !IsSidebarExpanded;
     }
 
+    /// <summary>
+    /// 切换页面。离开摄像头/定义页时停止预览；进入定义页/历史时触发刷新。
+    /// </summary>
     private void Navigate(string key)
     {
         if ((key is "Devices" or "Cameras") && !IsAdmin)
@@ -137,6 +161,7 @@ public partial class ShellViewModel : ViewModelBase, IDisposable
         if (!_pages.ContainsKey(key))
             return;
 
+        // 离开含预览的页面时释放 LibVLC 资源
         if (SelectedNav == "Cameras" && key != "Cameras")
             _camerasViewModel?.StopPreviewsIfAny();
 

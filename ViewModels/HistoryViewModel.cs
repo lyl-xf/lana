@@ -6,6 +6,7 @@ using Lana.Gateway.Services;
 
 namespace Lana.ViewModels;
 
+/// <summary>历史数据列表行（由 DeviceOperationLog 投影）。</summary>
 public sealed class HistoryLogItem
 {
     public long Id { get; init; }
@@ -26,6 +27,10 @@ public sealed class HistoryDeviceFilterItem
     public string DisplayName { get; init; } = string.Empty;
 }
 
+/// <summary>
+/// 历史数据页：查询 <see cref="DeviceOperationHistoryService"/> 记录的调试/定义页读写。
+/// Source 字段可区分来源（DefinedPage / DevicesDebug 等）。
+/// </summary>
 public partial class HistoryViewModel : ViewModelBase
 {
     private readonly DeviceOperationHistoryService _history;

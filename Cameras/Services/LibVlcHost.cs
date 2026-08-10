@@ -1,4 +1,5 @@
 using LibVLCSharp.Shared;
+using Lana.Cameras.Models;
 
 namespace Lana.Cameras.Services;
 
@@ -64,12 +65,16 @@ public sealed class LibVlcHost : IDisposable
     public MediaPlayer CreatePlayer()
         => new(_libVlc);
 
-    public Media CreateMedia(string playUrl)
+    public Media CreateMedia(CameraPlayRequest request)
     {
-        var media = new Media(_libVlc, playUrl, FromType.FromLocation);
-        media.AddOption(":rtsp-tcp");
-        media.AddOption(":network-caching=500");
-        media.AddOption(":no-audio");
+        ArgumentNullException.ThrowIfNull(request);
+        var media = new Media(_libVlc, request.Mrl, FromType.FromLocation);
+        foreach (var option in request.Options)
+        {
+            if (!string.IsNullOrWhiteSpace(option))
+                media.AddOption(option);
+        }
+
         return media;
     }
 

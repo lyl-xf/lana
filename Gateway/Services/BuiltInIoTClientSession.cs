@@ -3,6 +3,10 @@ using Lana.Gateway.Protocol;
 
 namespace Lana.Gateway.Services;
 
+/// <summary>
+/// 将 IoTClient（Modbus / 西门子 / 三菱 / 欧姆龙）适配为 <see cref="Protocol.IDeviceProtocolSession"/>。
+/// 具体客户端由 <see cref="IoTClientFactory"/> 创建，读写委托 <see cref="ProtocolIoTClientOperations"/>。
+/// </summary>
 public sealed class BuiltInIoTClientSession : IDeviceProtocolSession
 {
     private readonly Device _device;
