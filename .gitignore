@@ -18,6 +18,7 @@ bld/
 *.userosscache
 *.suo
 *.cache
+_build_verify
 project.lock.json
 project.fragment.lock.json
 artifacts/
