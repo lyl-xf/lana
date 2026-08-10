@@ -6,29 +6,43 @@ using Lana.Models;
 
 namespace Lana.Services;
 
-/// <summary>基于 Users 表的认证实现；密码为 SHA256 十六进制（见 PasswordHasher）。</summary>
+/// <summary>基于 Users 表的认证实现；密码为 SHA256 十六进制（见 <see cref="PasswordHasher"/>）。</summary>
 public sealed class AuthService : IAuthService
 {
+    /// <summary>密码最小长度限制。</summary>
     private const int MinPasswordLength = 4;
 
+    /// <summary>用户表数据访问。</summary>
     private readonly UserMapper _userMapper;
 
+    /// <summary>
+    /// 通过会话工厂创建默认 <see cref="UserMapper"/>。
+    /// </summary>
+    /// <param name="sessionFactory">数据库会话工厂。</param>
     public AuthService(ISqliteSessionFactory sessionFactory)
         : this(new UserMapper(sessionFactory))
     {
     }
 
+    /// <summary>
+    /// 使用已有 Mapper 实例（便于测试或自定义注入）。
+    /// </summary>
+    /// <param name="userMapper">用户表 Mapper。</param>
     public AuthService(UserMapper userMapper)
     {
         _userMapper = userMapper;
     }
 
+    /// <inheritdoc />
     public AppUser? CurrentUser { get; private set; }
 
+    /// <inheritdoc />
     public bool IsAuthenticated => CurrentUser is not null;
 
+    /// <inheritdoc />
     public async Task<(bool Success, string Message)> LoginAsync(string username, string password)
     {
+        // 基本非空校验
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
         {
             return (false, "请输入用户名和密码");
@@ -37,8 +51,10 @@ public sealed class AuthService : IAuthService
         var normalized = username.Trim();
         var user = await _userMapper.FindByUsernameAsync(normalized);
 
+        // 模拟网络延迟，改善登录反馈体验
         await Task.Delay(400);
 
+        // 用户不存在或密码不匹配
         if (user is null || !PasswordHasher.Verify(password, user.PasswordHash))
         {
             return (false, "用户名或密码不正确");
@@ -46,6 +62,7 @@ public sealed class AuthService : IAuthService
 
         await _userMapper.UpdateLastLoginAsync(user.Id, DateTime.UtcNow);
 
+        // 映射为会话用户（不含密码哈希）
         CurrentUser = new AppUser
         {
             Id = user.Id,
@@ -57,6 +74,7 @@ public sealed class AuthService : IAuthService
         return (true, "登录成功");
     }
 
+    /// <inheritdoc />
     public async Task<(bool Success, string Message)> RegisterAsync(string username, string password, string displayName)
     {
         if (string.IsNullOrWhiteSpace(username) || string.IsNullOrWhiteSpace(password))
@@ -75,6 +93,7 @@ public sealed class AuthService : IAuthService
             return (false, $"密码至少 {MinPasswordLength} 位");
         }
 
+        // 用户名唯一性检查
         var existing = await _userMapper.FindByUsernameAsync(normalized);
         if (existing is not null)
         {
@@ -94,6 +113,7 @@ public sealed class AuthService : IAuthService
         return (true, "注册成功，请登录");
     }
 
+    /// <inheritdoc />
     public async Task<(bool Success, string Message)> ChangePasswordAsync(string currentPassword, string newPassword)
     {
         if (CurrentUser is null)
@@ -122,6 +142,7 @@ public sealed class AuthService : IAuthService
             return (false, "用户不存在");
         }
 
+        // 验证当前密码正确性
         if (!PasswordHasher.Verify(currentPassword, user.PasswordHash))
         {
             return (false, "当前密码不正确");
@@ -131,6 +152,7 @@ public sealed class AuthService : IAuthService
         return (true, "密码已更新");
     }
 
+    /// <inheritdoc />
     public void Logout()
     {
         CurrentUser = null;

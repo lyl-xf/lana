@@ -1,6 +1,6 @@
+using Lana.Data.Sqlite;
 using Lana.Gateway.Data;
 using Lana.Gateway.Models;
-using Lana.Data.Sqlite;
 
 namespace Lana.Gateway.Services;
 
@@ -9,10 +9,17 @@ namespace Lana.Gateway.Services;
 /// </summary>
 public sealed class GatewayConfigStore : IGatewayConfigStore
 {
+    /// <summary>设备表 Mapper。</summary>
     private readonly DeviceMapper _devices;
+    /// <summary>变量表 Mapper。</summary>
     private readonly DeviceVariableMapper _variables;
+    /// <summary>MQTT 配置 Mapper。</summary>
     private readonly MqttConfigMapper _mqtt;
 
+    /// <summary>
+    /// 通过会话工厂构造（内部创建 Mapper）。
+    /// </summary>
+    /// <param name="sessionFactory">SQLite 会话工厂。</param>
     public GatewayConfigStore(ISqliteSessionFactory sessionFactory)
     {
         _devices = new DeviceMapper(sessionFactory);
@@ -20,6 +27,12 @@ public sealed class GatewayConfigStore : IGatewayConfigStore
         _mqtt = new MqttConfigMapper(sessionFactory);
     }
 
+    /// <summary>
+    /// 注入已有 Mapper（便于测试）。
+    /// </summary>
+    /// <param name="devices">设备 Mapper。</param>
+    /// <param name="variables">变量 Mapper。</param>
+    /// <param name="mqtt">MQTT 配置 Mapper。</param>
     public GatewayConfigStore(
         DeviceMapper devices,
         DeviceVariableMapper variables,
@@ -30,12 +43,14 @@ public sealed class GatewayConfigStore : IGatewayConfigStore
         _mqtt = mqtt;
     }
 
+    /// <inheritdoc />
     public Task<MqttConfig?> GetMqttConfigAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
         return _mqtt.GetAsync();
     }
 
+    /// <inheritdoc />
     public async Task<List<Device>> GetActiveDevicesWithVariablesAsync(CancellationToken ct = default)
     {
         ct.ThrowIfCancellationRequested();
@@ -43,6 +58,7 @@ public sealed class GatewayConfigStore : IGatewayConfigStore
         var devices = await _devices.GetActiveAsync();
         var list = new List<Device>(devices.Count);
 
+        // 逐设备加载物模型变量（N+1 查询，设备数通常较少）
         foreach (var device in devices)
         {
             ct.ThrowIfCancellationRequested();

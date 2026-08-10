@@ -11,11 +11,13 @@ namespace Lana.Gateway.Services;
 public sealed class ProtocolSessionFactory
 {
     /// <summary>为指定设备创建新会话（调用方负责 Open/Dispose）。</summary>
+    /// <param name="device">设备实体（含协议与连接参数）。</param>
+    /// <returns>未打开的协议会话实例。</returns>
     public IDeviceProtocolSession CreateSession(Device device)
     {
         ArgumentNullException.ThrowIfNull(device);
 
-        // 自定义协议：在此增加 case / if 分支即可
+        // HttpClient 走独立 REST 会话；其余协议统一 IoTClient 适配
         if (device.ProtocolType == ProtocolType.HttpClient)
             return new HttpClientDeviceSession(device);
 

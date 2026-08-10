@@ -15,22 +15,36 @@ namespace Lana.Gateway.Services;
 /// </summary>
 public sealed class GatewayDeviceService
 {
+    /// <summary>备份 JSON 序列化选项。</summary>
     private static readonly JsonSerializerOptions BackupJsonOptions = new()
     {
         WriteIndented = true,
         PropertyNameCaseInsensitive = true,
     };
 
+    /// <summary>设备表 Mapper。</summary>
     private readonly DeviceMapper _devices;
+    /// <summary>变量表 Mapper。</summary>
     private readonly DeviceVariableMapper _variables;
+    /// <summary>MQTT 配置 Mapper。</summary>
     private readonly MqttConfigMapper _mqtt;
+    /// <summary>协议会话工厂。</summary>
     private readonly ProtocolSessionFactory _protocolSessions;
 
+    /// <summary>
+    /// 通过会话工厂构造（内部创建默认 ProtocolSessionFactory）。
+    /// </summary>
+    /// <param name="sessionFactory">SQLite 会话工厂。</param>
     public GatewayDeviceService(ISqliteSessionFactory sessionFactory)
         : this(sessionFactory, new ProtocolSessionFactory())
     {
     }
 
+    /// <summary>
+    /// 注入自定义协议会话工厂（便于测试）。
+    /// </summary>
+    /// <param name="sessionFactory">SQLite 会话工厂。</param>
+    /// <param name="protocolSessionFactory">协议会话工厂。</param>
     public GatewayDeviceService(ISqliteSessionFactory sessionFactory, ProtocolSessionFactory protocolSessionFactory)
     {
         _devices = new DeviceMapper(sessionFactory);
@@ -39,9 +53,19 @@ public sealed class GatewayDeviceService
         _protocolSessions = protocolSessionFactory;
     }
 
+    /// <summary>
+    /// 列出设备（可选名称过滤）。
+    /// </summary>
+    /// <param name="name">可选名称关键字。</param>
+    /// <returns>设备列表。</returns>
     public async Task<IReadOnlyList<Device>> ListDevicesAsync(string? name = null)
         => await _devices.GetAllAsync(name);
 
+    /// <summary>
+    /// 获取单台设备及其变量。
+    /// </summary>
+    /// <param name="id">设备 Id。</param>
+    /// <returns>带 Variables 的设备；不存在时返回 null。</returns>
     public async Task<Device?> GetDeviceAsync(long id)
     {
         var device = await _devices.GetByIdAsync(id);
@@ -52,6 +76,11 @@ public sealed class GatewayDeviceService
         return device;
     }
 
+    /// <summary>
+    /// 创建设备（Id 必须为正且唯一）。
+    /// </summary>
+    /// <param name="device">待创建设备。</param>
+    /// <returns>异步任务。</returns>
     public async Task CreateDeviceAsync(Device device)
     {
         ArgumentNullException.ThrowIfNull(device);
@@ -67,6 +96,12 @@ public sealed class GatewayDeviceService
         await _devices.InsertAsync(device);
     }
 
+    /// <summary>
+    /// 更新设备（支持变更主键 Id）。
+    /// </summary>
+    /// <param name="oldId">原设备 Id。</param>
+    /// <param name="device">更新后的设备实体。</param>
+    /// <returns>异步任务。</returns>
     public async Task UpdateDeviceAsync(long oldId, Device device)
     {
         ArgumentNullException.ThrowIfNull(device);
@@ -86,15 +121,31 @@ public sealed class GatewayDeviceService
             return;
         }
 
+        // 主键变更：事务内迁移
         await _devices.UpdateDeviceIdMigrateAsync(oldId, device);
     }
 
+    /// <summary>
+    /// 删除设备及其全部变量。
+    /// </summary>
+    /// <param name="id">设备 Id。</param>
+    /// <returns>异步任务。</returns>
     public Task DeleteDeviceAsync(long id)
         => _devices.DeleteAsync(id);
 
+    /// <summary>
+    /// 列出设备的全部变量。
+    /// </summary>
+    /// <param name="deviceId">设备 Id。</param>
+    /// <returns>变量列表。</returns>
     public Task<IReadOnlyList<DeviceVariable>> ListVariablesAsync(long deviceId)
         => _variables.GetByDeviceAsync(deviceId);
 
+    /// <summary>
+    /// 创建变量。
+    /// </summary>
+    /// <param name="variable">待创建变量。</param>
+    /// <returns>新变量 Id。</returns>
     public async Task<long> CreateVariableAsync(DeviceVariable variable)
     {
         ArgumentNullException.ThrowIfNull(variable);
@@ -108,6 +159,11 @@ public sealed class GatewayDeviceService
         return id;
     }
 
+    /// <summary>
+    /// 更新变量。
+    /// </summary>
+    /// <param name="variable">待更新变量。</param>
+    /// <returns>异步任务。</returns>
     public async Task UpdateVariableAsync(DeviceVariable variable)
     {
         ArgumentNullException.ThrowIfNull(variable);
@@ -124,12 +180,26 @@ public sealed class GatewayDeviceService
             throw new InvalidOperationException($"变量 Id {variable.Id} 不存在。");
     }
 
+    /// <summary>
+    /// 删除变量。
+    /// </summary>
+    /// <param name="id">变量 Id。</param>
+    /// <returns>异步任务。</returns>
     public Task DeleteVariableAsync(long id)
         => _variables.DeleteAsync(id);
 
+    /// <summary>
+    /// 读取 MQTT 配置。
+    /// </summary>
+    /// <returns>MQTT 配置；无记录时返回 null。</returns>
     public Task<MqttConfig?> GetMqttAsync()
         => _mqtt.GetAsync();
 
+    /// <summary>
+    /// 保存 MQTT 配置（Insert 或 Update）。
+    /// </summary>
+    /// <param name="config">MQTT 配置。</param>
+    /// <returns>异步任务。</returns>
     public Task SaveMqttAsync(MqttConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
@@ -137,6 +207,13 @@ public sealed class GatewayDeviceService
         return _mqtt.UpsertAsync(config);
     }
 
+    /// <summary>
+    /// 调试读：打开临时会话读单点。
+    /// </summary>
+    /// <param name="deviceId">设备 Id。</param>
+    /// <param name="address">协议地址。</param>
+    /// <param name="dataType">数据类型。</param>
+    /// <returns>读结果。</returns>
     public async Task<DebugReadResult> DebugReadAsync(long deviceId, string address, DataType dataType)
     {
         var device = await GetDeviceAsync(deviceId);
@@ -167,6 +244,14 @@ public sealed class GatewayDeviceService
         }
     }
 
+    /// <summary>
+    /// 调试写：打开临时会话写单点。
+    /// </summary>
+    /// <param name="deviceId">设备 Id。</param>
+    /// <param name="address">协议地址。</param>
+    /// <param name="dataType">数据类型。</param>
+    /// <param name="value">写入值。</param>
+    /// <returns>写结果。</returns>
     public async Task<DebugWriteResult> DebugWriteAsync(long deviceId, string address, DataType dataType, string? value)
     {
         var device = await GetDeviceAsync(deviceId);
@@ -196,6 +281,11 @@ public sealed class GatewayDeviceService
         }
     }
 
+    /// <summary>
+    /// 调试批量读：遍历全部非只写变量。
+    /// </summary>
+    /// <param name="deviceId">设备 Id。</param>
+    /// <returns>批量读结果。</returns>
     public async Task<DebugReadAllResult> DebugReadAllAsync(long deviceId)
     {
         var device = await GetDeviceAsync(deviceId);
@@ -212,6 +302,7 @@ public sealed class GatewayDeviceService
         {
             foreach (var variable in device.Variables)
             {
+                // 只写变量跳过
                 if (variable.ReadWrite == ReadWriteAccess.WriteOnly)
                     continue;
 
@@ -247,6 +338,11 @@ public sealed class GatewayDeviceService
         return result;
     }
 
+    /// <summary>
+    /// 导出网关配置为 JSON 备份字符串。
+    /// </summary>
+    /// <param name="includeMqtt">是否包含 MQTT 配置。</param>
+    /// <returns>JSON 字符串。</returns>
     public async Task<string> ExportBackupAsync(bool includeMqtt = true)
     {
         var devices = await _devices.GetAllAsync();
@@ -272,6 +368,13 @@ public sealed class GatewayDeviceService
         return JsonSerializer.Serialize(backup, BackupJsonOptions);
     }
 
+    /// <summary>
+    /// 从 JSON 备份导入配置。
+    /// </summary>
+    /// <param name="json">备份 JSON。</param>
+    /// <param name="mode">merge（合并）或 replaceAll（全量替换）。</param>
+    /// <param name="includeMqtt">是否导入 MQTT 配置。</param>
+    /// <returns>异步任务。</returns>
     public async Task ImportBackupAsync(string json, string mode = "merge", bool includeMqtt = true)
     {
         if (string.IsNullOrWhiteSpace(json))
@@ -314,6 +417,7 @@ public sealed class GatewayDeviceService
             }
             else if (await _devices.ExistsAsync(device.Id))
             {
+                // merge：更新设备并重建变量
                 await _devices.UpdateAsync(device);
                 await _variables.DeleteByDeviceAsync(device.Id);
             }
@@ -338,14 +442,22 @@ public sealed class GatewayDeviceService
         }
     }
 
+    /// <summary>
+    /// 校验协议类型是否在允许范围内（0–6）。
+    /// </summary>
+    /// <param name="protocolType">协议类型。</param>
     private static void ValidateProtocol(ProtocolType protocolType)
     {
         var value = (int)protocolType;
-        // Custom 已移除；仅允许 0–6。
+        // Custom 已移除；仅允许 0–6
         if (value < 0 || value > 6)
             throw new ArgumentException($"不支持的协议类型：{protocolType}（仅允许 0–6）。");
     }
 
+    /// <summary>
+    /// 规范化设备字段（空字符串、PollInterval、西门子版本）。
+    /// </summary>
+    /// <param name="device">待规范化设备。</param>
     private static void NormalizeDevice(Device device)
     {
         device.Name ??= string.Empty;
@@ -360,6 +472,10 @@ public sealed class GatewayDeviceService
             device.PlcVersion = IoTClientFactory.NormalizeSiemensVersion(device.PlcVersion);
     }
 
+    /// <summary>
+    /// 规范化变量字段（空字符串兜底）。
+    /// </summary>
+    /// <param name="variable">待规范化变量。</param>
     private static void NormalizeVariable(DeviceVariable variable)
     {
         variable.Address ??= string.Empty;
@@ -369,6 +485,10 @@ public sealed class GatewayDeviceService
         variable.HttpValueJsonPath ??= string.Empty;
     }
 
+    /// <summary>
+    /// 规范化 MQTT 配置字段与默认值。
+    /// </summary>
+    /// <param name="config">待规范化配置。</param>
     private static void NormalizeMqtt(MqttConfig config)
     {
         config.BrokerIp ??= string.Empty;
@@ -386,9 +506,20 @@ public sealed class GatewayDeviceService
             config.TelemetryPublishInterval = 0;
     }
 
+    /// <summary>
+    /// Models.DataType → Protocol.ProtocolDataType（整型 cast）。
+    /// </summary>
+    /// <param name="dataType">领域数据类型。</param>
+    /// <returns>协议数据类型。</returns>
     private static ProtocolDataType ToProtocolDataType(DataType dataType)
         => (ProtocolDataType)(int)dataType;
 
+    /// <summary>
+    /// 设备实体 → 备份 DTO。
+    /// </summary>
+    /// <param name="device">设备实体。</param>
+    /// <param name="variables">变量列表。</param>
+    /// <returns>DeviceBackupDto。</returns>
     private static DeviceBackupDto ToDeviceBackup(Device device, IReadOnlyList<DeviceVariable> variables) => new()
     {
         Id = device.Id,
@@ -424,6 +555,11 @@ public sealed class GatewayDeviceService
         }).ToList(),
     };
 
+    /// <summary>
+    /// 备份 DTO → 设备实体。
+    /// </summary>
+    /// <param name="dto">DeviceBackupDto。</param>
+    /// <returns>Device 实体。</returns>
     private static Device FromDeviceBackup(DeviceBackupDto dto) => new()
     {
         Id = dto.Id,
@@ -443,6 +579,12 @@ public sealed class GatewayDeviceService
         IsActive = dto.IsActive,
     };
 
+    /// <summary>
+    /// 变量备份 DTO → 变量实体。
+    /// </summary>
+    /// <param name="dto">DeviceVariableBackupDto。</param>
+    /// <param name="deviceId">目标设备 Id。</param>
+    /// <returns>DeviceVariable 实体。</returns>
     private static DeviceVariable FromVariableBackup(DeviceVariableBackupDto dto, long deviceId) => new()
     {
         DeviceId = deviceId,
@@ -459,6 +601,11 @@ public sealed class GatewayDeviceService
         DefinedPageWriteValue = dto.DefinedPageWriteValue ?? string.Empty,
     };
 
+    /// <summary>
+    /// MQTT 实体 → 备份 DTO。
+    /// </summary>
+    /// <param name="mqtt">MqttConfig 实体。</param>
+    /// <returns>MqttBackupDto。</returns>
     private static MqttBackupDto ToMqttBackup(MqttConfig mqtt) => new()
     {
         IsEnabled = mqtt.IsEnabled,
@@ -475,6 +622,11 @@ public sealed class GatewayDeviceService
         TelemetryPublishInterval = mqtt.TelemetryPublishInterval,
     };
 
+    /// <summary>
+    /// 备份 DTO → MQTT 实体。
+    /// </summary>
+    /// <param name="dto">MqttBackupDto。</param>
+    /// <returns>MqttConfig 实体。</returns>
     private static MqttConfig FromMqttBackup(MqttBackupDto dto) => new()
     {
         IsEnabled = dto.IsEnabled,

@@ -14,11 +14,15 @@ namespace Lana.Data;
 /// </summary>
 public static class DbInitializer
 {
-    /// <summary>创建核心表、迁移模块 Schema，并种子 admin/demo 与默认设置。</summary>
+    /// <summary>
+    /// 创建核心表、迁移模块 Schema，并种子 admin/demo 与默认设置。
+    /// </summary>
+    /// <param name="sessionFactory">数据库会话工厂。</param>
     public static async Task InitializeAsync(ISqliteSessionFactory sessionFactory)
     {
         await using var session = sessionFactory.OpenSession();
 
+        // 核心表：用户与键值设置
         await session.ExecuteAsync("""
             CREATE TABLE IF NOT EXISTS Users (
                 Id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -48,6 +52,7 @@ public static class DbInitializer
         var userMapper = new UserMapper(sessionFactory);
         var settingMapper = new SettingMapper(sessionFactory);
 
+        // 首次安装时写入默认账号
         if (await userMapper.CountAsync() == 0)
         {
             await userMapper.InsertAsync(new UserEntity
@@ -69,10 +74,12 @@ public static class DbInitializer
             });
         }
 
+        // 确保默认主题与动画开关存在
         await EnsureSettingAsync(settingMapper, SettingKeys.ThemeStyle, "Aurora");
         await EnsureSettingAsync(settingMapper, SettingKeys.EnableAnimations, "true");
     }
 
+    /// <summary>若设置项不存在则插入默认值。</summary>
     private static async Task EnsureSettingAsync(SettingMapper mapper, string key, string value)
     {
         var existing = await mapper.FindByKeyAsync(key);
@@ -88,12 +95,21 @@ public static class DbInitializer
 /// </summary>
 public static class SettingKeys
 {
+    /// <summary>当前主题样式：Aurora / Snow。</summary>
     public const string ThemeStyle = "ThemeStyle";
+
     /// <summary>旧版暗色开关，启动时会迁移到 ThemeStyle。</summary>
     public const string DarkTheme = "DarkTheme";
+
+    /// <summary>是否启用界面动画。</summary>
     public const string EnableAnimations = "EnableAnimations";
+
+    /// <summary>登录页「记住我」开关。</summary>
     public const string RememberMe = "RememberMe";
+
+    /// <summary>记住的用户名。</summary>
     public const string RememberedUsername = "RememberedUsername";
+
     /// <summary>记住密码（Base64，非强加密，仅本地便利）。</summary>
     public const string RememberedPassword = "RememberedPassword";
 }

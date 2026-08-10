@@ -16,13 +16,15 @@ sealed class Program
     /// <summary>
     /// 进程入口。在 AppMain 之前不要使用 Avalonia、第三方 API 或依赖 SynchronizationContext 的代码。
     /// </summary>
+    /// <param name="args">命令行参数。</param>
     [STAThread]
     public static void Main(string[] args) => BuildAvaloniaApp()
         .StartWithClassicDesktopLifetime(args);
 
     /// <summary>
-    /// Avalonia 配置（设计器也会调用，请勿删除）。
+    /// 构建并配置 Avalonia 应用（设计器也会调用，请勿删除）。
     /// </summary>
+    /// <returns>已配置平台检测、字体与日志的 <see cref="AppBuilder"/>。</returns>
     public static AppBuilder BuildAvaloniaApp()
         => AppBuilder.Configure<App>()
             .UsePlatformDetect()

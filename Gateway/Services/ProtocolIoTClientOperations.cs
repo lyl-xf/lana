@@ -10,9 +10,22 @@ namespace Lana.Gateway.Services;
 /// </summary>
 public static class ProtocolIoTClientOperations
 {
+    /// <summary>
+    /// 宽松布尔解析（"1" 或 "true" 视为 true）。
+    /// </summary>
+    /// <param name="s">字符串值。</param>
+    /// <returns>解析结果。</returns>
     private static bool ParseLooseBool(string? s) =>
         s == "1" || (bool.TryParse(s, out var b) && b);
 
+    /// <summary>
+    /// 从 IoTClient 读取指定地址的值。
+    /// </summary>
+    /// <param name="client">IoTClient 动态实例。</param>
+    /// <param name="protocolType">协议类型（决定地址解析方式）。</param>
+    /// <param name="address">读点地址。</param>
+    /// <param name="dataType">数据类型。</param>
+    /// <returns>读结果（含 Value）。</returns>
     public static ProtocolResult<object?> Read(dynamic client, ProtocolType protocolType, string address, DataType dataType)
     {
         try
@@ -22,6 +35,7 @@ public static class ProtocolIoTClientOperations
 
             if (isModbus)
             {
+                // Modbus：解析站号/功能码后调用对应 Read 方法
                 var (addr, sn, fc) = ModbusHelper.ParseModbusAddress(address, dataType, false);
                 readResult = dataType switch
                 {
@@ -42,6 +56,7 @@ public static class ProtocolIoTClientOperations
             }
             else
             {
+                // PLC：地址直接传入，无需 Modbus 解析
                 readResult = dataType switch
                 {
                     DataType.Bool => (dynamic)client.ReadBoolean(address),
@@ -73,6 +88,15 @@ public static class ProtocolIoTClientOperations
         }
     }
 
+    /// <summary>
+    /// 向 IoTClient 写入指定地址的值。
+    /// </summary>
+    /// <param name="client">IoTClient 动态实例。</param>
+    /// <param name="protocolType">协议类型。</param>
+    /// <param name="address">写点地址。</param>
+    /// <param name="dataType">数据类型。</param>
+    /// <param name="value">字符串形式的写入值。</param>
+    /// <returns>写结果。</returns>
     public static ProtocolResult Write(dynamic client, ProtocolType protocolType, string address, DataType dataType, string? value)
     {
         try
@@ -105,7 +129,7 @@ public static class ProtocolIoTClientOperations
                         client.Write(addr, value ?? "", sn, fc);
                         break;
                     case DataType.Discrete:
-                        return ProtocolResult.Ok();
+                        return ProtocolResult.Ok(); // 离散输入只读
                     case DataType.UShort:
                         client.Write(addr, ushort.Parse(value!), sn, fc);
                         break;
@@ -121,6 +145,7 @@ public static class ProtocolIoTClientOperations
             }
             else
             {
+                // PLC 写：地址直接使用
                 switch (dataType)
                 {
                     case DataType.Bool:

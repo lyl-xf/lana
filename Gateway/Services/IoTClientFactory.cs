@@ -14,6 +14,9 @@ namespace Lana.Gateway.Services;
 public static class IoTClientFactory
 {
     /// <summary>创建未 Open 的客户端；HttpClient 协议请走 HttpClientDeviceSession。</summary>
+    /// <param name="device">设备实体（含协议与连接参数）。</param>
+    /// <returns>IoTClient 动态客户端实例。</returns>
+    /// <exception cref="NotSupportedException">不支持的协议类型。</exception>
     public static dynamic CreateClient(Device device)
     {
         return device.ProtocolType switch
@@ -37,8 +40,12 @@ public static class IoTClientFactory
     }
 
     /// <summary>
+    /// 解析西门子 PLC 版本字符串为 IoTClient 枚举。
     /// IoTClient 枚举为 S7_200Smart；兼容误存的 S7-200Smart / S7200Smart。
     /// </summary>
+    /// <param name="plcVersion">版本字符串。</param>
+    /// <returns>SiemensVersion 枚举值。</returns>
+    /// <exception cref="ArgumentException">无法识别的版本。</exception>
     public static SiemensVersion ParseSiemensVersion(string? plcVersion)
     {
         var normalized = NormalizeSiemensVersion(plcVersion);
@@ -49,6 +56,11 @@ public static class IoTClientFactory
             $"不支持的西门子 PLC 版本「{plcVersion}」。请使用：{string.Join(", ", ProtocolDisplay.SiemensVersions)}");
     }
 
+    /// <summary>
+    /// 规范化西门子版本字符串（兼容多种写法）。
+    /// </summary>
+    /// <param name="plcVersion">原始版本字符串。</param>
+    /// <returns>规范化后的版本名（如 S7_1200）。</returns>
     public static string NormalizeSiemensVersion(string? plcVersion)
     {
         if (string.IsNullOrWhiteSpace(plcVersion))
@@ -69,6 +81,12 @@ public static class IoTClientFactory
         return value;
     }
 
+    /// <summary>
+    /// 解析三菱 PLC 版本字符串为 IoTClient 枚举。
+    /// </summary>
+    /// <param name="plcVersion">版本字符串。</param>
+    /// <returns>MitsubishiVersion 枚举值。</returns>
+    /// <exception cref="ArgumentException">无法识别的版本。</exception>
     private static MitsubishiVersion ParseMitsubishiVersion(string? plcVersion)
     {
         if (string.IsNullOrWhiteSpace(plcVersion))

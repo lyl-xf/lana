@@ -9,21 +9,44 @@ namespace Lana.ViewModels;
 /// <summary>历史数据列表行（由 DeviceOperationLog 投影）。</summary>
 public sealed class HistoryLogItem
 {
+    /// <summary>日志 Id。</summary>
     public long Id { get; init; }
+
+    /// <summary>操作时间（本地时区格式化）。</summary>
     public string TimeText { get; init; } = string.Empty;
+
+    /// <summary>操作用户名。</summary>
     public string UserText { get; init; } = string.Empty;
+
+    /// <summary>操作来源（DefinedPage / DevicesDebug 等）。</summary>
     public string Source { get; init; } = string.Empty;
+
+    /// <summary>设备描述文本。</summary>
     public string DeviceText { get; init; } = string.Empty;
+
+    /// <summary>操作类型（读取/写入/全部读取）。</summary>
     public string Operation { get; init; } = string.Empty;
+
+    /// <summary>目标变量/地址描述。</summary>
     public string TargetText { get; init; } = string.Empty;
+
+    /// <summary>读写的值文本。</summary>
     public string ValueText { get; init; } = string.Empty;
+
+    /// <summary>结果描述（成功/失败原因）。</summary>
     public string ResultText { get; init; } = string.Empty;
+
+    /// <summary>是否操作成功。</summary>
     public bool Success { get; init; }
 }
 
+/// <summary>历史页设备筛选下拉项。</summary>
 public sealed class HistoryDeviceFilterItem
 {
+    /// <summary>设备 Id；null 表示「全部设备」。</summary>
     public long? Id { get; init; }
+
+    /// <summary>下拉显示名称。</summary>
     public string DisplayName { get; init; } = string.Empty;
 }
 
@@ -33,9 +56,17 @@ public sealed class HistoryDeviceFilterItem
 /// </summary>
 public partial class HistoryViewModel : ViewModelBase
 {
+    /// <summary>操作历史查询服务。</summary>
     private readonly DeviceOperationHistoryService _history;
+
+    /// <summary>设备列表服务（用于筛选下拉）。</summary>
     private readonly GatewayDeviceService _devices;
 
+    /// <summary>
+    /// 构造历史页 ViewModel 并异步初始化筛选列表。
+    /// </summary>
+    /// <param name="history">操作历史服务。</param>
+    /// <param name="devices">设备服务。</param>
     public HistoryViewModel(DeviceOperationHistoryService history, GatewayDeviceService devices)
     {
         _history = history;
@@ -43,22 +74,35 @@ public partial class HistoryViewModel : ViewModelBase
         _ = InitializeAsync();
     }
 
+    /// <summary>底部状态栏提示信息。</summary>
     [ObservableProperty]
     private string _statusMessage = string.Empty;
 
+    /// <summary>是否正在加载或清空。</summary>
     [ObservableProperty]
     private bool _isBusy;
 
+    /// <summary>当前筛选的设备 Id；null 表示全部。</summary>
     [ObservableProperty]
     private long? _filterDeviceId;
 
+    /// <summary>设备筛选下拉列表。</summary>
     public ObservableCollection<HistoryDeviceFilterItem> DeviceFilters { get; } = [];
 
+    /// <summary>历史日志列表。</summary>
     public ObservableCollection<HistoryLogItem> Logs { get; } = [];
 
+    /// <summary>
+    /// 筛选设备变更时自动刷新列表。
+    /// </summary>
+    /// <param name="value">新选中的设备 Id。</param>
     partial void OnFilterDeviceIdChanged(long? value)
         => _ = RefreshAsync();
 
+    /// <summary>
+    /// 初始化设备筛选下拉并加载首屏数据。
+    /// </summary>
+    /// <returns>表示初始化完成的 Task。</returns>
     private async Task InitializeAsync()
     {
         try
@@ -84,6 +128,10 @@ public partial class HistoryViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 按当前筛选条件刷新历史列表（最多 300 条）。
+    /// </summary>
+    /// <returns>表示刷新完成的 Task。</returns>
     [RelayCommand]
     private async Task RefreshAsync()
     {
@@ -109,6 +157,10 @@ public partial class HistoryViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 清空全部历史记录。
+    /// </summary>
+    /// <returns>表示清空完成的 Task。</returns>
     [RelayCommand]
     private async Task ClearAsync()
     {
@@ -132,6 +184,11 @@ public partial class HistoryViewModel : ViewModelBase
         }
     }
 
+    /// <summary>
+    /// 将数据库日志实体投影为列表行模型。
+    /// </summary>
+    /// <param name="log">原始操作日志。</param>
+    /// <returns>UI 绑定的 <see cref="HistoryLogItem"/>。</returns>
     private static HistoryLogItem ToItem(DeviceOperationLog log)
     {
         var local = log.OccurredAtUtc.ToLocalTime();

@@ -11,18 +11,36 @@ namespace Lana.Gateway.Data;
 /// </summary>
 public static class GatewaySchema
 {
+    /// <summary>
+    /// 确保表结构存在并完成增量列迁移（使用已有会话）。
+    /// </summary>
+    /// <param name="session">SQLite 会话。</param>
+    /// <returns>迁移任务。</returns>
     public static Task EnsureAsync(ISqliteSession session)
         => EnsureCoreAsync(session);
 
+    /// <summary>
+    /// 打开新会话并确保表结构存在。
+    /// </summary>
+    /// <param name="sessionFactory">SQLite 会话工厂。</param>
+    /// <returns>迁移任务。</returns>
     public static async Task EnsureAsync(ISqliteSessionFactory sessionFactory)
     {
         await using var session = sessionFactory.OpenSession();
         await EnsureCoreAsync(session);
     }
 
+    /// <summary>
+    /// 核心迁移逻辑：建表 + 逐列 ALTER（兼容旧库）。
+    /// </summary>
+    /// <param name="session">SQLite 会话。</param>
+    /// <returns>迁移任务。</returns>
     private static async Task EnsureCoreAsync(ISqliteSession session)
     {
+        // 新库：CREATE TABLE IF NOT EXISTS
         await session.ExecuteAsync(Sql.Ensure);
+
+        // 旧库增量列：PRAGMA 检查后 ALTER TABLE ADD COLUMN
         await EnsureColumnAsync(session, "MqttConfigs", "IsEnabled",
             "ALTER TABLE MqttConfigs ADD COLUMN IsEnabled INTEGER NOT NULL DEFAULT 1;");
         await EnsureColumnAsync(session, "DeviceVariables", "ShowOnDefinedPage",
@@ -37,9 +55,19 @@ public static class GatewaySchema
             "ALTER TABLE MqttConfigs ADD COLUMN EnablePolling INTEGER NOT NULL DEFAULT 1;");
         await EnsureColumnAsync(session, "MqttConfigs", "TelemetryPublishInterval",
             "ALTER TABLE MqttConfigs ADD COLUMN TelemetryPublishInterval INTEGER NOT NULL DEFAULT 0;");
+
+        // 操作历史表（独立 Schema 类）
         await DeviceOperationLogSchema.EnsureAsync(session);
     }
 
+    /// <summary>
+    /// 若表中不存在指定列则执行 ALTER 语句（幂等迁移）。
+    /// </summary>
+    /// <param name="session">SQLite 会话。</param>
+    /// <param name="table">表名。</param>
+    /// <param name="column">列名。</param>
+    /// <param name="alterSql">ALTER TABLE ADD COLUMN 语句。</param>
+    /// <returns>迁移任务。</returns>
     private static async Task EnsureColumnAsync(
         ISqliteSession session, string table, string column, string alterSql)
     {
@@ -50,13 +78,17 @@ public static class GatewaySchema
         await session.ExecuteAsync(alterSql);
     }
 
+    /// <summary>PRAGMA table_info 返回的列元数据。</summary>
     private sealed class PragmaColumn
     {
+        /// <summary>列名。</summary>
         public string Name { get; set; } = string.Empty;
     }
 
+    /// <summary>Gateway 核心表 DDL 常量。</summary>
     public static class Sql
     {
+        /// <summary>Devices / DeviceVariables / MqttConfigs 建表及索引。</summary>
         public const string Ensure = """
             CREATE TABLE IF NOT EXISTS Devices (
                 Id INTEGER NOT NULL PRIMARY KEY,

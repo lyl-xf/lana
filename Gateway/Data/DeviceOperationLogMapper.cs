@@ -3,20 +3,34 @@ using Lana.Gateway.Models;
 
 namespace Lana.Gateway.Data;
 
+/// <summary>
+/// 设备操作历史表 SQL Mapper（写入与分页查询）。
+/// </summary>
 public sealed class DeviceOperationLogMapper
 {
+    /// <summary>SQLite 会话工厂。</summary>
     private readonly ISqliteSessionFactory _sessionFactory;
 
+    /// <summary>
+    /// 构造 Mapper。
+    /// </summary>
+    /// <param name="sessionFactory">SQLite 会话工厂。</param>
     public DeviceOperationLogMapper(ISqliteSessionFactory sessionFactory)
     {
         _sessionFactory = sessionFactory;
     }
 
+    /// <summary>
+    /// 插入一条操作历史记录。
+    /// </summary>
+    /// <param name="log">操作日志实体。</param>
+    /// <returns>异步任务。</returns>
     public async Task InsertAsync(DeviceOperationLog log)
     {
         await using var session = _sessionFactory.OpenSession();
         await session.ExecuteAsync(Sql.Insert, new
         {
+            // 时间统一 ISO8601 UTC 格式入库
             OccurredAtUtc = log.OccurredAtUtc.ToUniversalTime().ToString("O"),
             log.UserId,
             Username = log.Username ?? string.Empty,
@@ -34,6 +48,13 @@ public sealed class DeviceOperationLogMapper
         });
     }
 
+    /// <summary>
+    /// 分页查询操作历史（按时间倒序）。
+    /// </summary>
+    /// <param name="deviceId">可选：按设备 Id 过滤。</param>
+    /// <param name="operation">可选：按操作类型过滤（Read/Write/ReadAll）。</param>
+    /// <param name="limit">返回条数上限（1–2000，默认 200）。</param>
+    /// <returns>日志列表。</returns>
     public async Task<IReadOnlyList<DeviceOperationLog>> QueryAsync(
         long? deviceId = null,
         string? operation = null,
@@ -50,12 +71,21 @@ public sealed class DeviceOperationLogMapper
         return rows.Select(ToModel).ToList();
     }
 
+    /// <summary>
+    /// 清空全部操作历史。
+    /// </summary>
+    /// <returns>删除的行数。</returns>
     public async Task<int> ClearAsync()
     {
         await using var session = _sessionFactory.OpenSession();
         return await session.ExecuteAsync(Sql.Clear);
     }
 
+    /// <summary>
+    /// 将数据库行映射为领域模型。
+    /// </summary>
+    /// <param name="row">Dapper 查询行。</param>
+    /// <returns>DeviceOperationLog 实体。</returns>
     private static DeviceOperationLog ToModel(LogRow row)
     {
         _ = DateTime.TryParse(row.OccurredAtUtc, null,
@@ -80,6 +110,7 @@ public sealed class DeviceOperationLogMapper
         };
     }
 
+    /// <summary>Dapper 映射用的内部行类型。</summary>
     private sealed class LogRow
     {
         public long Id { get; set; }
@@ -99,8 +130,10 @@ public sealed class DeviceOperationLogMapper
         public string? Error { get; set; }
     }
 
+    /// <summary>操作历史表 SQL 语句常量。</summary>
     public static class Sql
     {
+        /// <summary>插入日志。</summary>
         public const string Insert = """
             INSERT INTO DeviceOperationLogs (
                 OccurredAtUtc, UserId, Username, Source, DeviceId, DeviceName,
@@ -111,6 +144,7 @@ public sealed class DeviceOperationLogMapper
             );
             """;
 
+        /// <summary>条件查询（设备/操作类型可选）。</summary>
         public const string Query = """
             SELECT Id, OccurredAtUtc, UserId, Username, Source, DeviceId, DeviceName,
                    VariableId, VariableAlias, Address, Operation, DataType, Value, Success, Error
@@ -121,6 +155,7 @@ public sealed class DeviceOperationLogMapper
             LIMIT @Limit;
             """;
 
+        /// <summary>清空全部日志。</summary>
         public const string Clear = "DELETE FROM DeviceOperationLogs;";
     }
 }

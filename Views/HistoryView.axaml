@@ -19,7 +19,7 @@
         <StackPanel DockPanel.Dock="Top" Spacing="10">
           <TextBlock Text="历史数据" Classes="primary-text" FontWeight="SemiBold" FontSize="16"/>
           <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
-                     Text="记录定义页、设备调试等通过设备调试 API 发起的读写操作。"/>
+                     Text="记录手动操作、设备调试等通过设备调试 API 发起的读写操作。"/>
           <Grid ColumnDefinitions="*,Auto,Auto" ColumnSpacing="10">
             <ComboBox ItemsSource="{Binding DeviceFilters}"
                       SelectedValue="{Binding FilterDeviceId}"

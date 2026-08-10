@@ -11,21 +11,40 @@ public enum ProtocolDataType
 /// <summary>无返回值的协议操作结果。</summary>
 public readonly struct ProtocolResult
 {
+    /// <summary>操作是否成功。</summary>
     public bool Success { get; init; }
+    /// <summary>失败时的错误描述。</summary>
     public string? Error { get; init; }
 
+    /// <summary>构造成功结果。</summary>
+    /// <returns>Success=true 的结果。</returns>
     public static ProtocolResult Ok() => new() { Success = true };
+
+    /// <summary>构造失败结果。</summary>
+    /// <param name="error">错误描述。</param>
+    /// <returns>Success=false 的结果。</returns>
     public static ProtocolResult Fail(string? error) => new() { Success = false, Error = error ?? "Unknown error" };
 }
 
 /// <summary>带返回值的协议操作结果。</summary>
+/// <typeparam name="T">返回值类型。</typeparam>
 public readonly struct ProtocolResult<T>
 {
+    /// <summary>操作是否成功。</summary>
     public bool Success { get; init; }
+    /// <summary>失败时的错误描述。</summary>
     public string? Error { get; init; }
+    /// <summary>读到的值（失败时通常为 default）。</summary>
     public T? Value { get; init; }
 
+    /// <summary>构造成功结果。</summary>
+    /// <param name="value">读到的值。</param>
+    /// <returns>携带 Value 的成功结果。</returns>
     public static ProtocolResult<T> Ok(T value) => new() { Success = true, Value = value };
+
+    /// <summary>构造失败结果。</summary>
+    /// <param name="error">错误描述。</param>
+    /// <returns>Success=false 的结果。</returns>
     public static ProtocolResult<T> Fail(string? error) => new() { Success = false, Error = error ?? "Unknown error" };
 }
 
@@ -43,9 +62,26 @@ public readonly struct ProtocolResult<T>
 /// </summary>
 public interface IDeviceProtocolSession : IDisposable
 {
+    /// <summary>打开/连接设备。</summary>
+    /// <returns>连接结果。</returns>
     ProtocolResult Open();
+
+    /// <summary>关闭/断开设备连接。</summary>
     void Close();
+
+    /// <summary>当前是否已连接。</summary>
     bool IsConnected { get; }
+
+    /// <summary>从指定地址读取值。</summary>
+    /// <param name="address">协议地址。</param>
+    /// <param name="dataType">数据类型。</param>
+    /// <returns>读结果（含 Value）。</returns>
     ProtocolResult<object?> Read(string address, ProtocolDataType dataType);
+
+    /// <summary>向指定地址写入值。</summary>
+    /// <param name="address">协议地址。</param>
+    /// <param name="dataType">数据类型。</param>
+    /// <param name="value">字符串形式的写入值。</param>
+    /// <returns>写结果。</returns>
     ProtocolResult Write(string address, ProtocolDataType dataType, string? value);
 }

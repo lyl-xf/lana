@@ -113,7 +113,7 @@
                 </Grid>
 
                 <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
-                           Text="关闭「数据采集」后，该设备将不再按周期采集上报；仍可在调试/定义页手动读写。"/>
+                           Text="关闭「数据采集」后，该设备将不再按周期采集上报；仍可在调试/手动操作页读写。"/>
 
                 <!-- TCP -->
                 <Border Classes="glass-panel" Padding="12" IsVisible="{Binding ShowTcpFields}">
@@ -318,18 +318,18 @@
                             SelectedIndex="{Binding VarReadWrite}"
                             HorizontalAlignment="Stretch"/>
 
-                  <TextBlock Grid.Row="5" Text="进入自定义页" Classes="field-label" VerticalAlignment="Center"/>
+                  <TextBlock Grid.Row="5" Text="加入手动操作页" Classes="field-label" VerticalAlignment="Center"/>
                   <ToggleSwitch Grid.Row="5" Grid.Column="1" IsChecked="{Binding VarShowOnDefinedPage}"
                                 OnContent="开" OffContent="关"/>
 
-                  <TextBlock Grid.Row="6" Text="自定义页名称" Classes="field-label" VerticalAlignment="Center"
+                  <TextBlock Grid.Row="6" Text="操作名称" Classes="field-label" VerticalAlignment="Center"
                              IsVisible="{Binding ShowDefinedPageOptions}"/>
                   <TextBox Grid.Row="6" Grid.Column="1" Text="{Binding VarDefinedPageDisplayName}"
                            Classes="neon-input"
                            PlaceholderText="如 启动泵 / 急停"
                            IsVisible="{Binding ShowDefinedPageOptions}"/>
 
-                  <TextBlock Grid.Row="7" Text="自定义页操作" Classes="field-label" VerticalAlignment="Center"
+                  <TextBlock Grid.Row="7" Text="操作方式" Classes="field-label" VerticalAlignment="Center"
                              IsVisible="{Binding ShowDefinedPageOperationSelector}"/>
                   <ComboBox Grid.Row="7" Grid.Column="1"
                             ItemsSource="{Binding DefinedPageOperationOptions}"
@@ -347,10 +347,10 @@
 
                 <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
                            IsVisible="{Binding ShowDefinedPageBoolHint}"
-                           Text="Bool 类型：定义页按钮为点动——按下写入 true，松开写入 false。"/>
+                           Text="Bool 类型：手动操作按钮为点动——按下写入 true，松开写入 false。"/>
                 <TextBlock Classes="muted-text" FontSize="12" TextWrapping="Wrap"
                            IsVisible="{Binding ShowDefinedPageOperationSelector}"
-                           Text="非 Bool：选择读取或写入；写入时需填写默认写入值。按钮文字使用「自定义页名称」。"/>
+                           Text="非 Bool：选择读取或写入；写入时需填写默认写入值。按钮文字使用「操作名称」。"/>
 
                 <Border Classes="glass-panel" Padding="12" IsVisible="{Binding ShowHttpVariableFields}">
                   <StackPanel Spacing="10">
@@ -396,13 +396,13 @@
               <StackPanel Spacing="14">
                 <StackPanel Spacing="4">
                   <TextBlock Text="MQTT 与轮询" Classes="primary-text" FontWeight="SemiBold" FontSize="18"/>
-                  <TextBlock Text="轮询与 MQTT 可独立开关：轮询关时仍可收 MQTT 写入指令；MQTT 关时仍可本地轮询与定义页展示" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
+                  <TextBlock Text="轮询与 MQTT 可独立开关：轮询关时仍可收 MQTT 写入指令；MQTT 关时仍可本地轮询与手动操作页展示" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
                 </StackPanel>
 
                 <Grid ColumnDefinitions="*,Auto">
                   <StackPanel Spacing="2" VerticalAlignment="Center">
                     <TextBlock Text="启用轮询查询" Classes="secondary-text" FontWeight="SemiBold"/>
-                    <TextBlock Text="按各设备「采集周期」读点并更新定义页状态；与 MQTT 上报无关" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
+                    <TextBlock Text="按各设备「采集周期」读点并更新手动操作页状态；与 MQTT 上报无关" Classes="muted-text" FontSize="12" TextWrapping="Wrap"/>
                   </StackPanel>
                   <ToggleSwitch Grid.Column="1" IsChecked="{Binding MqttEnablePolling}"
                                 OnContent="开" OffContent="关" VerticalAlignment="Center"/>

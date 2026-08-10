@@ -9,10 +9,19 @@ namespace Lana.Gateway.Services;
 /// </summary>
 public sealed class DeviceDebugApi : IDeviceDebugApi
 {
+    /// <summary>网关设备底层服务。</summary>
     private readonly GatewayDeviceService _gateway;
+    /// <summary>操作历史服务。</summary>
     private readonly DeviceOperationHistoryService _history;
+    /// <summary>认证服务（可选，用于填充 UserId/Username）。</summary>
     private readonly IAuthService? _auth;
 
+    /// <summary>
+    /// 构造调试 API。
+    /// </summary>
+    /// <param name="gateway">网关设备服务。</param>
+    /// <param name="history">操作历史服务。</param>
+    /// <param name="auth">可选认证服务。</param>
     public DeviceDebugApi(
         GatewayDeviceService gateway,
         DeviceOperationHistoryService history,
@@ -23,6 +32,7 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         _auth = auth;
     }
 
+    /// <inheritdoc />
     public async Task<DebugReadResult> ReadAsync(
         long deviceId,
         string address,
@@ -32,6 +42,7 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         context ??= DeviceDebugContext.Default;
         var device = await _gateway.GetDeviceAsync(deviceId);
         var result = await _gateway.DebugReadAsync(deviceId, address, dataType);
+        // 读写完成后异步记历史（失败不影响主流程）
         await TryLogAsync(new DeviceOperationLog
         {
             OccurredAtUtc = DateTime.UtcNow,
@@ -50,6 +61,7 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         return result;
     }
 
+    /// <inheritdoc />
     public async Task<DebugWriteResult> WriteAsync(
         long deviceId,
         string address,
@@ -78,6 +90,7 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         return result;
     }
 
+    /// <inheritdoc />
     public async Task<DebugReadAllResult> ReadAllAsync(
         long deviceId,
         DeviceDebugContext? context = null)
@@ -87,6 +100,7 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         var result = await _gateway.DebugReadAllAsync(deviceId);
         var ok = result.Items.Count(x => x.Success);
         var fail = result.Items.Count - ok;
+        // 批量读记一条汇总日志
         await TryLogAsync(new DeviceOperationLog
         {
             OccurredAtUtc = DateTime.UtcNow,
@@ -105,6 +119,7 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         return result;
     }
 
+    /// <inheritdoc />
     public async Task<DebugReadResult> ReadVariableAsync(
         long deviceId,
         long variableId,
@@ -143,6 +158,7 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         return result;
     }
 
+    /// <inheritdoc />
     public async Task<DebugWriteResult> WriteVariableAsync(
         long deviceId,
         long variableId,
@@ -182,6 +198,12 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         return result;
     }
 
+    /// <summary>
+    /// 按上下文决定是否写入操作历史（失败静默忽略）。
+    /// </summary>
+    /// <param name="log">待写入的日志。</param>
+    /// <param name="context">调试上下文。</param>
+    /// <returns>异步任务。</returns>
     private async Task TryLogAsync(DeviceOperationLog log, DeviceDebugContext context)
     {
         if (!context.RecordHistory)
@@ -197,6 +219,11 @@ public sealed class DeviceDebugApi : IDeviceDebugApi
         }
     }
 
+    /// <summary>
+    /// 将读到的值格式化为历史记录字符串。
+    /// </summary>
+    /// <param name="value">原始值。</param>
+    /// <returns>格式化字符串；null 时返回 null。</returns>
     private static string? FormatValue(object? value)
         => value switch
         {

@@ -29,8 +29,8 @@
           </Border>
 
           <TextBlock Text="LANA" Classes="brand-mark" HorizontalAlignment="Left"/>
-          <TextBlock Text="跨平台桌面体验" Classes="hero-title" TextWrapping="Wrap"/>
-          <TextBlock Text="一套代码，覆盖 Windows / Linux / macOS。登录后进入沉浸式工作台，数据由本地 SQLite 持久化。"
+          <TextBlock Text="设备接入端" Classes="hero-title" TextWrapping="Wrap"/>
+          <TextBlock Text="支持modbus、modbus-tcp、rtu、dtu / tcp / http协议的设备接入，支持摄像头RTSP流。通过http上报采集设备数据，以及通过mqtt指令下发控制 ，覆盖 Windows / Linux / macOS。登录后进入沉浸式工作台，数据由本地 SQLite 持久化。"
                      Classes="hero-subtitle" TextWrapping="Wrap"/>
 
           <StackPanel Spacing="12" Margin="0,12,0,0">
