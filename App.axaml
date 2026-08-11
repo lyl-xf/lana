@@ -44,6 +44,34 @@
       <Setter Property="FontSize" Value="12"/>
     </Style>
 
+    <!-- 表单字段旁提示标：圆形 i，悬停显示 ToolTip -->
+    <Style Selector="Border.field-hint-badge">
+      <Setter Property="Width" Value="20"/>
+      <Setter Property="Height" Value="20"/>
+      <Setter Property="CornerRadius" Value="10"/>
+      <Setter Property="Background" Value="{DynamicResource AppAccentSoftBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Cursor" Value="Hand"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="ToolTip.ShowDelay" Value="150"/>
+    </Style>
+
+    <Style Selector="Border.field-hint-badge:pointerover">
+      <Setter Property="Background" Value="{DynamicResource AppNavActiveBrush}"/>
+      <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
+    </Style>
+
+    <Style Selector="Border.field-hint-badge TextBlock">
+      <Setter Property="Text" Value="i"/>
+      <Setter Property="FontSize" Value="13"/>
+      <Setter Property="FontWeight" Value="Bold"/>
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+      <Setter Property="HorizontalAlignment" Value="Center"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+      <Setter Property="FontFamily" Value="Segoe UI, Microsoft YaHei UI, sans-serif"/>
+    </Style>
+
     <Style Selector="TextBlock.section-eyebrow">
       <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
       <Setter Property="FontSize" Value="12"/>
@@ -330,6 +358,65 @@
       <Setter Property="Background" Value="{DynamicResource AppListItemSelectedBrush}"/>
       <Setter Property="BorderBrush" Value="{DynamicResource AppAccentBrush}"/>
       <Setter Property="BorderThickness" Value="1.5"/>
+    </Style>
+
+    <!-- 手动操作页：圆形按钮（读/写） -->
+    <Style Selector="Button.defined-op-circle">
+      <Setter Property="Width" Value="76"/>
+      <Setter Property="Height" Value="76"/>
+      <Setter Property="Padding" Value="6"/>
+      <Setter Property="CornerRadius" Value="999"/>
+      <Setter Property="HorizontalContentAlignment" Value="Center"/>
+      <Setter Property="VerticalContentAlignment" Value="Center"/>
+      <Setter Property="Foreground" Value="{DynamicResource AppOnAccentBrush}"/>
+      <Setter Property="Background" Value="{DynamicResource AppCtaGradientBrush}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style Selector="Button.defined-op-circle:pointerover">
+      <Setter Property="Opacity" Value="0.96"/>
+    </Style>
+
+    <Style Selector="Button.defined-op-circle:pressed">
+      <Setter Property="Opacity" Value="0.72"/>
+      <Setter Property="RenderTransform" Value="scale(0.94)"/>
+    </Style>
+
+    <Style Selector="Button.defined-op-circle:disabled">
+      <Setter Property="Opacity" Value="0.5"/>
+    </Style>
+
+    <!-- 手动操作页：圆形点动（Bool 按住） -->
+    <Style Selector="Border.defined-op-circle">
+      <Setter Property="Width" Value="76"/>
+      <Setter Property="Height" Value="76"/>
+      <Setter Property="Padding" Value="6"/>
+      <Setter Property="CornerRadius" Value="999"/>
+      <Setter Property="Background" Value="{DynamicResource AppCtaGradientBrush}"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="BoxShadow" Value="{DynamicResource AppGlowShadow}"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+
+    <Style Selector="Border.defined-op-circle:pointerover">
+      <Setter Property="Opacity" Value="0.96"/>
+    </Style>
+
+    <Style Selector="Border.defined-op-circle.pressed">
+      <Setter Property="Opacity" Value="0.72"/>
+      <Setter Property="RenderTransform" Value="scale(0.94)"/>
+      <Setter Property="RenderTransformOrigin" Value="50%,50%"/>
+      <Setter Property="BoxShadow" Value="0 2 8 0 #35000000"/>
+    </Style>
+
+    <Style Selector="TextBlock.status-value">
+      <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}"/>
+    </Style>
+
+    <Style Selector="TextBlock.status-value.changed">
+      <Setter Property="Foreground" Value="{DynamicResource AppDangerBrush}"/>
     </Style>
   </Application.Styles>
 </Application>

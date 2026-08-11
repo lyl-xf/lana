@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Lana.Data;
 using Lana.Data.Sqlite;
 using Lana.Gateway.Data;
 using Lana.Gateway.Models;
@@ -10,7 +11,7 @@ namespace Lana.Gateway.Services;
 /// 网关设备 / 变量 / MQTT / 调试 / 备份的高层 API（供 UI 与配置管理调用）。
 /// <para>
 /// UI 即时读写请优先走 <see cref="IDeviceDebugApi"/>（会记历史）；
-/// 本类 Debug* 为底层实现，采集 Worker 使用协议会话而非本类。
+/// 底层经 <see cref="IDeviceIoScheduler"/> 与采集 Poll 共用链路，避免 RTU 并发冲突。
 /// </para>
 /// </summary>
 public sealed class GatewayDeviceService
@@ -31,12 +32,15 @@ public sealed class GatewayDeviceService
     /// <summary>协议会话工厂。</summary>
     private readonly ProtocolSessionFactory _protocolSessions;
 
+    /// <summary>统一 IO 调度（登录后注入；调试读写与 Poll 共用）。</summary>
+    private readonly IDeviceIoScheduler? _ioScheduler;
+
     /// <summary>
     /// 通过会话工厂构造（内部创建默认 ProtocolSessionFactory）。
     /// </summary>
     /// <param name="sessionFactory">SQLite 会话工厂。</param>
     public GatewayDeviceService(ISqliteSessionFactory sessionFactory)
-        : this(sessionFactory, new ProtocolSessionFactory())
+        : this(sessionFactory, new ProtocolSessionFactory(), null)
     {
     }
 
@@ -45,12 +49,17 @@ public sealed class GatewayDeviceService
     /// </summary>
     /// <param name="sessionFactory">SQLite 会话工厂。</param>
     /// <param name="protocolSessionFactory">协议会话工厂。</param>
-    public GatewayDeviceService(ISqliteSessionFactory sessionFactory, ProtocolSessionFactory protocolSessionFactory)
+    /// <param name="ioScheduler">可选 IO 调度器；登录后由 MainViewModel 注入。</param>
+    public GatewayDeviceService(
+        ISqliteSessionFactory sessionFactory,
+        ProtocolSessionFactory protocolSessionFactory,
+        IDeviceIoScheduler? ioScheduler = null)
     {
         _devices = new DeviceMapper(sessionFactory);
         _variables = new DeviceVariableMapper(sessionFactory);
         _mqtt = new MqttConfigMapper(sessionFactory);
         _protocolSessions = protocolSessionFactory;
+        _ioScheduler = ioScheduler;
     }
 
     /// <summary>
@@ -153,7 +162,11 @@ public sealed class GatewayDeviceService
         if (!await _devices.ExistsAsync(variable.DeviceId))
             throw new InvalidOperationException($"设备 Id {variable.DeviceId} 不存在。");
 
+        var device = await _devices.GetByIdAsync(variable.DeviceId)
+                     ?? throw new InvalidOperationException($"设备 Id {variable.DeviceId} 不存在。");
+
         NormalizeVariable(variable);
+        ValidateVariableCollection(variable, device.ProtocolType);
         var id = await _variables.InsertAsync(variable);
         variable.Id = id;
         return id;
@@ -174,7 +187,11 @@ public sealed class GatewayDeviceService
         if (!await _devices.ExistsAsync(variable.DeviceId))
             throw new InvalidOperationException($"设备 Id {variable.DeviceId} 不存在。");
 
+        var device = await _devices.GetByIdAsync(variable.DeviceId)
+                     ?? throw new InvalidOperationException($"设备 Id {variable.DeviceId} 不存在。");
+
         NormalizeVariable(variable);
+        ValidateVariableCollection(variable, device.ProtocolType);
         var affected = await _variables.UpdateAsync(variable);
         if (affected == 0)
             throw new InvalidOperationException($"变量 Id {variable.Id} 不存在。");
@@ -203,8 +220,34 @@ public sealed class GatewayDeviceService
     public Task SaveMqttAsync(MqttConfig config)
     {
         ArgumentNullException.ThrowIfNull(config);
+        return SaveMqttCoreAsync(config);
+    }
+
+    /// <summary>
+    /// 活跃设备中最大的 PollInterval（仅 PollInterval &gt; 0）；无设备时为 0。
+    /// </summary>
+    public async Task<int> GetMaxActivePollIntervalAsync()
+    {
+        var devices = await _devices.GetActiveAsync();
+        return devices.Count == 0 ? 0 : devices.Max(d => d.PollInterval);
+    }
+
+    /// <summary>保存 MQTT 并校验遥测间隔 ≥ 最大采集周期。</summary>
+    private async Task SaveMqttCoreAsync(MqttConfig config)
+    {
         NormalizeMqtt(config);
-        return _mqtt.UpsertAsync(config);
+
+        if (config.TelemetryPublishInterval > 0)
+        {
+            var maxPoll = await GetMaxActivePollIntervalAsync();
+            if (maxPoll > 0 && config.TelemetryPublishInterval < maxPoll)
+            {
+                throw new InvalidOperationException(
+                    $"遥测上报间隔（{config.TelemetryPublishInterval} ms）须 ≥ 活跃设备最大采集周期（{maxPoll} ms）。");
+            }
+        }
+
+        await _mqtt.UpsertAsync(config);
     }
 
     /// <summary>
@@ -222,6 +265,17 @@ public sealed class GatewayDeviceService
 
         if (string.IsNullOrWhiteSpace(address))
             return new DebugReadResult { Success = false, Error = "地址不能为空。" };
+
+        if (_ioScheduler != null)
+        {
+            var result = await _ioScheduler.ReadAsync(device, address, dataType);
+            return new DebugReadResult
+            {
+                Success = result.Success,
+                Error = result.Error,
+                Value = result.Value,
+            };
+        }
 
         using var session = _protocolSessions.CreateSession(device);
         var open = session.Open();
@@ -261,6 +315,18 @@ public sealed class GatewayDeviceService
         if (string.IsNullOrWhiteSpace(address))
             return new DebugWriteResult { Success = false, Error = "地址不能为空。" };
 
+        if (_ioScheduler != null)
+        {
+            var patchVar = device.Variables.FirstOrDefault(v =>
+                string.Equals(v.Address, address, StringComparison.OrdinalIgnoreCase));
+            var result = await _ioScheduler.WriteAsync(device, address, dataType, value, patchVar);
+            return new DebugWriteResult
+            {
+                Success = result.Success,
+                Error = result.Error,
+            };
+        }
+
         using var session = _protocolSessions.CreateSession(device);
         var open = session.Open();
         if (!open.Success)
@@ -291,6 +357,41 @@ public sealed class GatewayDeviceService
         var device = await GetDeviceAsync(deviceId);
         if (device is null)
             return new DebugReadAllResult { Success = false, Error = $"设备 Id {deviceId} 不存在。" };
+
+        if (_ioScheduler != null)
+        {
+            var batchResult = new DebugReadAllResult { Success = true };
+            foreach (var variable in device.Variables)
+            {
+                if (variable.ReadWrite == ReadWriteAccess.WriteOnly)
+                    continue;
+
+                var item = new DebugReadAllItem
+                {
+                    VariableId = variable.Id,
+                    Alias = variable.Alias,
+                    Address = variable.Address,
+                    DataType = variable.DataType,
+                };
+
+                try
+                {
+                    var read = await _ioScheduler.ReadAsync(device, variable.Address, variable.DataType);
+                    item.Success = read.Success;
+                    item.Error = read.Error;
+                    item.Value = read.Value;
+                }
+                catch (Exception ex)
+                {
+                    item.Success = false;
+                    item.Error = ex.Message;
+                }
+
+                batchResult.Items.Add(item);
+            }
+
+            return batchResult;
+        }
 
         using var session = _protocolSessions.CreateSession(device);
         var open = session.Open();
@@ -483,6 +584,13 @@ public sealed class GatewayDeviceService
         variable.Description ??= string.Empty;
         variable.HttpKeyJsonPath ??= string.Empty;
         variable.HttpValueJsonPath ??= string.Empty;
+        DeviceVariablePollRules.NormalizeCollectionFlags(variable);
+    }
+
+    /// <summary>带设备协议的变量校验（创建/更新前调用）。</summary>
+    private static void ValidateVariableCollection(DeviceVariable variable, ProtocolType protocolType)
+    {
+        DeviceVariablePollRules.ValidateCollectionFlags(variable, protocolType);
     }
 
     /// <summary>
@@ -549,6 +657,9 @@ public sealed class GatewayDeviceService
             HttpKeyJsonPath = v.HttpKeyJsonPath,
             HttpValueJsonPath = v.HttpValueJsonPath,
             ShowOnDefinedPage = v.ShowOnDefinedPage,
+            IncludeInPoll = v.IncludeInPoll,
+            ShowInStatus = v.ShowInStatus,
+            IncludeInTelemetry = v.IncludeInTelemetry,
             DefinedPageDisplayName = v.DefinedPageDisplayName,
             DefinedPageOperation = v.DefinedPageOperation,
             DefinedPageWriteValue = v.DefinedPageWriteValue,
@@ -596,6 +707,9 @@ public sealed class GatewayDeviceService
         HttpKeyJsonPath = dto.HttpKeyJsonPath,
         HttpValueJsonPath = dto.HttpValueJsonPath,
         ShowOnDefinedPage = dto.ShowOnDefinedPage,
+        IncludeInPoll = dto.IncludeInPoll,
+        ShowInStatus = dto.ShowInStatus,
+        IncludeInTelemetry = dto.IncludeInTelemetry,
         DefinedPageDisplayName = dto.DefinedPageDisplayName ?? string.Empty,
         DefinedPageOperation = dto.DefinedPageOperation,
         DefinedPageWriteValue = dto.DefinedPageWriteValue ?? string.Empty,
@@ -614,7 +728,9 @@ public sealed class GatewayDeviceService
         Port = mqtt.Port,
         ClientId = mqtt.ClientId,
         Username = mqtt.Username,
-        Password = mqtt.Password,
+        Password = string.IsNullOrEmpty(mqtt.Password)
+            ? string.Empty
+            : LocalSecretProtector.Protect(mqtt.Password),
         PubTopic = mqtt.PubTopic,
         SubTopic = mqtt.SubTopic,
         OnlineStatusTopic = mqtt.OnlineStatusTopic,
@@ -635,7 +751,7 @@ public sealed class GatewayDeviceService
         Port = dto.Port,
         ClientId = dto.ClientId,
         Username = dto.Username,
-        Password = dto.Password,
+        Password = LocalSecretProtector.Unprotect(dto.Password ?? string.Empty),
         PubTopic = dto.PubTopic,
         SubTopic = dto.SubTopic,
         OnlineStatusTopic = dto.OnlineStatusTopic,

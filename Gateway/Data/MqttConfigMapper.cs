@@ -1,3 +1,4 @@
+using Lana.Data;
 using Lana.Data.Sqlite;
 using Lana.Gateway.Models;
 
@@ -27,7 +28,10 @@ public sealed class MqttConfigMapper
     public async Task<MqttConfig?> GetAsync()
     {
         await using var session = _sessionFactory.OpenSession();
-        return await session.QueryFirstOrDefaultAsync<MqttConfig>(Sql.GetFirst);
+        var config = await session.QueryFirstOrDefaultAsync<MqttConfig>(Sql.GetFirst);
+        if (config is not null)
+            config.Password = LocalSecretProtector.Unprotect(config.Password);
+        return config;
     }
 
     /// <summary>
@@ -68,7 +72,7 @@ public sealed class MqttConfigMapper
         config.Port,
         ClientId = config.ClientId ?? string.Empty,
         Username = config.Username ?? string.Empty,
-        Password = config.Password ?? string.Empty,
+        Password = LocalSecretProtector.Protect(config.Password ?? string.Empty),
         PubTopic = config.PubTopic ?? string.Empty,
         SubTopic = config.SubTopic ?? string.Empty,
         OnlineStatusTopic = config.OnlineStatusTopic ?? string.Empty,

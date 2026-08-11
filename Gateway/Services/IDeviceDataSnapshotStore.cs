@@ -31,6 +31,9 @@ public interface IDeviceDataSnapshotStore
     /// <param name="entries">本轮采集到的变量快照（见 <see cref="DeviceVariableSnapshotEntry"/>）。</param>
     void UpdateDevice(long deviceId, string deviceName, IReadOnlyList<DeviceVariableSnapshotEntry> entries);
 
+    /// <summary>写成功后更新单个状态点（不替换整设备列表）。</summary>
+    void PatchPoint(long deviceId, string deviceName, DeviceVariableSnapshotEntry entry);
+
     /// <summary>清空全部实时状态（登出或重置时可调用；当前 MainViewModel 登出未调用，保留末次数据直至进程结束）。</summary>
     void Clear();
 }

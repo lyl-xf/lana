@@ -16,12 +16,12 @@ namespace Lana.Gateway.Services
     /// 会话按连接参数哈希共享（同 IP/串口配置共用一条连接）。
     /// </para>
     /// <para>
-    /// 轮询结果经 <see cref="PublishSnapshot"/> 写入 <see cref="IDeviceDataSnapshotStore"/>，
-    /// 供定义页等 UI 绑定展示；MQTT 遥测发布与之解耦，可单独开关。
+    /// 轮询结果写入 <see cref="IDevicePointCache"/> 与 <see cref="IDeviceDataSnapshotStore"/>；
+    /// MQTT 指令读写经 <see cref="IDeviceIoScheduler"/> 与 Poll 共用链路队列。
     /// </para>
     /// <para>
     /// 生命周期由 <c>MainViewModel</c> 在登录 Start、登出 Stop/Dispose。
-    /// 扩展采集逻辑时优先改 FillDevicePayload / MQTT 订阅处理，注意失败退避。
+    /// 扩展采集逻辑时优先改 <see cref="DevicePayloadBuilder"/> / MQTT 订阅处理，注意失败退避。
     /// </para>
     /// </summary>
     public class DataCollectionWorker : IAsyncDisposable
@@ -42,11 +42,20 @@ namespace Lana.Gateway.Services
         /// <summary>网关配置持久化存储（设备、变量、MQTT 配置）。</summary>
         private readonly IGatewayConfigStore _configStore;
 
-        /// <summary>按协议类型创建设备协议会话的工厂。</summary>
-        private readonly ProtocolSessionFactory _sessionFactory;
+        /// <summary>统一 IO 仲裁。</summary>
+        private readonly IDeviceIoScheduler _ioScheduler;
 
         /// <summary>共享实时状态；轮询完成后 UpdateDevice，UI 直接绑定 Groups。</summary>
         private readonly IDeviceDataSnapshotStore? _snapshotStore;
+
+        /// <summary>设备点 live 缓存；Poll commit 写入，MQTT 周期上报读取。</summary>
+        private readonly IDevicePointCache? _pointCache;
+
+        /// <summary>上次全局 MQTT 周期遥测调度 UTC（TelemetryPublishInterval &gt; 0 时使用）。</summary>
+        private DateTime _lastGlobalTelemetryPublish = DateTime.MinValue;
+
+        /// <summary>各设备上次 MQTT 遥测发布时的缓存 Version（用于跳过未变化 payload）。</summary>
+        private readonly Dictionary<long, long> _lastTelemetryPublishedVersion = new();
 
         /// <summary>MQTT 客户端实例；启用 MQTT 时创建并复用。</summary>
         private IMqttClient? _mqttClient;
@@ -54,7 +63,7 @@ namespace Lana.Gateway.Services
         /// <summary>各设备上次完成轮询的 UTC 时间，用于 PollInterval 节流。</summary>
         private readonly Dictionary<long, DateTime> _lastPollTimes = new();
 
-        /// <summary>各设备上次 MQTT 遥测发布的 UTC 时间，用于 TelemetryPublishInterval 节流。</summary>
+        /// <summary>各设备上次 MQTT 遥测发布的 UTC 时间（TelemetryPublishInterval=0 时按设备限频）。</summary>
         private readonly Dictionary<long, DateTime> _lastTelemetryPublishTimes = new();
 
         /// <summary>上次从数据库刷新配置缓存的 UTC 时间。</summary>
@@ -75,19 +84,7 @@ namespace Lana.Gateway.Services
         /// <summary>上一轮在线状态快照，用于检测变化后增量上报。</summary>
         private Dictionary<long, bool>? _previousOnlineStatusSnapshot;
 
-        /// <summary>设备 ID → 连接配置哈希键，用于客户端池引用追踪。</summary>
-        private readonly Dictionary<long, string> _deviceClientRefs = new();
-
-        /// <summary>连接配置哈希键 → 共享协议会话（同 IP/串口/PLC 参数共用）。</summary>
-        private readonly Dictionary<string, IDeviceProtocolSession> _sharedSessions = new();
-
-        /// <summary>连接配置哈希键 → 引用计数，归零时释放会话。</summary>
-        private readonly Dictionary<string, int> _sharedClientRefCounts = new();
-
-        /// <summary>客户端池字典操作的互斥锁。</summary>
-        private readonly object _clientPoolLock = new();
-
-        /// <summary>设备连接失败退避状态（与采集锁分离，MQTT 可快速判断）。</summary>
+        /// <summary>设备连接失败退避状态。</summary>
         private readonly ConcurrentDictionary<long, DeviceFailState> _failStates = new();
 
         /// <summary>防止同一设备上轮询未完成时又启动下一轮（点位多时会超过 PollInterval）。</summary>
@@ -124,16 +121,19 @@ namespace Lana.Gateway.Services
         /// 构造数据采集 Worker。
         /// </summary>
         /// <param name="configStore">网关配置存储。</param>
-        /// <param name="sessionFactory">协议会话工厂。</param>
+        /// <param name="ioScheduler">统一 IO 调度器。</param>
         /// <param name="snapshotStore">可为 null；正常登录由 MainViewModel 注入单例 Store。</param>
+        /// <param name="pointCache">可为 null；与 snapshotStore 成对注入。</param>
         public DataCollectionWorker(
             IGatewayConfigStore configStore,
-            ProtocolSessionFactory sessionFactory,
-            IDeviceDataSnapshotStore? snapshotStore = null)
+            IDeviceIoScheduler ioScheduler,
+            IDeviceDataSnapshotStore? snapshotStore = null,
+            IDevicePointCache? pointCache = null)
         {
             _configStore = configStore;
-            _sessionFactory = sessionFactory;
+            _ioScheduler = ioScheduler;
             _snapshotStore = snapshotStore;
+            _pointCache = pointCache;
         }
 
         /// <summary>
@@ -151,6 +151,14 @@ namespace Lana.Gateway.Services
                     return Task.CompletedTask;
 
                 _cts = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+                _ioScheduler.SetConnectionHandlers(new DeviceIoConnectionHandlers
+                {
+                    MarkOnline = id => _deviceOnlineStatus[id] = true,
+                    MarkOffline = id => _deviceOnlineStatus[id] = false,
+                    RegisterFailure = RegisterDeviceFailure,
+                    ClearFailure = ClearDeviceFailure,
+                    IsInBackoff = IsInBackoff,
+                });
                 _loopTask = ExecuteAsync(_cts.Token);
                 return Task.CompletedTask;
             }
@@ -192,19 +200,6 @@ namespace Lana.Gateway.Services
                 catch (Exception) when (cancellationToken.IsCancellationRequested) { /* stop requested */ }
             }
 
-            // 释放客户端池中所有共享协议会话
-            lock (_clientPoolLock)
-            {
-                foreach (var session in _sharedSessions.Values)
-                {
-                    try { session.Close(); } catch { /* ignore */ }
-                    try { session.Dispose(); } catch { /* ignore */ }
-                }
-                _sharedSessions.Clear();
-                _sharedClientRefCounts.Clear();
-                _deviceClientRefs.Clear();
-            }
-
             // 断开并销毁 MQTT 客户端
             if (_mqttClient != null)
             {
@@ -221,6 +216,7 @@ namespace Lana.Gateway.Services
             }
 
             cts?.Dispose();
+            _ioScheduler.SetConnectionHandlers(null);
         }
 
         /// <summary>
@@ -282,96 +278,6 @@ namespace Lana.Gateway.Services
         }
 
         /// <summary>
-        /// 根据设备连接参数生成客户端池哈希键（同键共享一条协议会话）。
-        /// </summary>
-        /// <param name="device">设备实体（含协议、IP、串口、PLC 等参数）。</param>
-        /// <returns>唯一配置哈希字符串。</returns>
-        private string GetDeviceConfigHash(Device device)
-        {
-            return $"{device.ProtocolType}_{device.Ip}_{device.Port}_{device.PortName}_{device.BaudRate}_{device.DataBits}_{device.StopBits}_{device.Parity}_{device.PlcVersion}_{device.PluginConfigJson}";
-        }
-
-        /// <summary>
-        /// 为设备获取或创建共享协议会话（引用计数 +1）。
-        /// </summary>
-        /// <param name="device">目标设备。</param>
-        /// <returns>可复用的 <see cref="IDeviceProtocolSession"/> 实例。</returns>
-        private IDeviceProtocolSession AcquireSessionForDevice(Device device)
-        {
-            var configKey = GetDeviceConfigHash(device);
-
-            lock (_clientPoolLock)
-            {
-                // 设备连接参数变更：释放旧键引用，后续按新键重新分配
-                if (_deviceClientRefs.TryGetValue(device.Id, out var oldKey) && oldKey != configKey)
-                {
-                    ReleaseClientByKeyNoLock(oldKey);
-                    _deviceClientRefs.Remove(device.Id);
-                }
-
-                if (!_deviceClientRefs.TryGetValue(device.Id, out var currentKey))
-                {
-                    // 池中尚无该配置键：工厂创建新会话
-                    if (!_sharedSessions.ContainsKey(configKey))
-                    {
-                        _sharedSessions[configKey] = _sessionFactory.CreateSession(device);
-                        _sharedClientRefCounts[configKey] = 0;
-                    }
-
-                    // 引用计数 +1，记录设备 → 配置键映射
-                    _sharedClientRefCounts[configKey]++;
-                    _deviceClientRefs[device.Id] = configKey;
-                    currentKey = configKey;
-                }
-
-                return _sharedSessions[currentKey];
-            }
-        }
-
-        /// <summary>
-        /// 按设备 ID 释放客户端池引用（引用计数 -1，归零则关闭会话）。
-        /// </summary>
-        /// <param name="deviceId">设备 ID。</param>
-        private void ReleaseClientByDeviceId(long deviceId)
-        {
-            lock (_clientPoolLock)
-            {
-                if (_deviceClientRefs.TryGetValue(deviceId, out var key))
-                {
-                    _deviceClientRefs.Remove(deviceId);
-                    ReleaseClientByKeyNoLock(key);
-                }
-            }
-        }
-
-        /// <summary>
-        /// 按配置键释放共享会话（调用方须已持有 <see cref="_clientPoolLock"/>）。
-        /// </summary>
-        /// <param name="key">连接配置哈希键。</param>
-        private void ReleaseClientByKeyNoLock(string key)
-        {
-            if (!_sharedClientRefCounts.TryGetValue(key, out var refCount))
-                return;
-
-            refCount--;
-            // 仍有其它设备引用：仅更新计数
-            if (refCount > 0)
-            {
-                _sharedClientRefCounts[key] = refCount;
-                return;
-            }
-
-            // 引用归零：关闭并移除会话
-            _sharedClientRefCounts.Remove(key);
-            if (_sharedSessions.TryGetValue(key, out var session))
-            {
-                try { session.Close(); } catch { /* ignore */ }
-                try { session.Dispose(); } catch { /* ignore */ }
-                _sharedSessions.Remove(key);
-            }
-        }
-
-        /// <summary>
         /// 后台主循环：刷新配置 → MQTT 连接/订阅 → 按 PollInterval 调度轮询 → 在线状态上报。
         /// </summary>
         /// <param name="stoppingToken">停止取消令牌。</param>
@@ -393,12 +299,16 @@ namespace Lana.Gateway.Services
 
                         // 清理已从库中删除/停用的设备：释放会话、轮询/遥测/在线/退避状态
                         var activeDeviceIds = _cachedDevices.Select(d => d.Id).ToHashSet();
-                        var toRemove = _deviceClientRefs.Keys.Where(id => !activeDeviceIds.Contains(id)).ToList();
+                        var toRemove = _lastPollTimes.Keys
+                            .Union(_deviceOnlineStatus.Keys)
+                            .Where(id => !activeDeviceIds.Contains(id))
+                            .ToList();
                         foreach (var id in toRemove)
                         {
-                            ReleaseClientByDeviceId(id);
+                            _ioScheduler.ReleaseDevice(id);
                             _lastPollTimes.Remove(id);
                             _lastTelemetryPublishTimes.Remove(id);
+                            _lastTelemetryPublishedVersion.Remove(id);
                             _deviceOnlineStatus.Remove(id);
                             _pollingDevices.TryRemove(id, out _);
                             ClearDeviceFailure(id);
@@ -418,8 +328,8 @@ namespace Lana.Gateway.Services
                     else
                         await DisconnectMqttAsync();
 
-                    // 轮询总开关：关闭时跳过设备调度与在线状态上报
-                    var pollingEnabled = _cachedMqttConfig is { EnablePolling: true };
+                    // 轮询总开关：与 MQTT 连接解耦；无配置行时默认开启（与 UI「MQTT 关时仍可本地轮询」一致）
+                    var pollingEnabled = _cachedMqttConfig?.EnablePolling ?? true;
 
                     if (pollingEnabled)
                     {
@@ -428,6 +338,9 @@ namespace Lana.Gateway.Services
                         {
                             // PollInterval <= 0：不参与自动轮询（仍可调试/MQTT 指令读写）
                             if (device.PollInterval <= 0)
+                                continue;
+
+                            if (!device.Variables.Any(DeviceVariablePollRules.ShouldPoll))
                                 continue;
 
                             var interval = device.PollInterval;
@@ -453,6 +366,10 @@ namespace Lana.Gateway.Services
                         // ── 在线状态增量上报（MQTT 已连接且轮询开启时）──
                         if (_cachedMqttConfig is { IsEnabled: true })
                             await PublishOnlineStatusAsync(_cachedMqttConfig, now, stoppingToken);
+
+                        // ── MQTT 周期遥测：独立调度，只读点缓存（TelemetryPublishInterval &gt; 0）──
+                        if (_cachedMqttConfig is { IsEnabled: true, TelemetryPublishInterval: > 0 })
+                            await TryPublishTelemetryFromCacheAsync(now, stoppingToken);
                     }
                 }
                 catch (Exception ex)
@@ -477,34 +394,27 @@ namespace Lana.Gateway.Services
         {
             try
             {
-                // 从客户端池获取/创建共享协议会话
-                var session = AcquireSessionForDevice(device);
-                Dictionary<string, object> payload;
+                var pollResult = await _ioScheduler.PollDeviceAsync(device, ct).ConfigureAwait(false);
+                var payload = pollResult.Payload;
 
-                // 协议 IO 在同一会话锁内串行，避免并发读写
-                lock (session)
-                {
-                    payload = PollDevicePayload(device, session, pollStartedUtc);
-                }
+                if (!pollResult.Connected && !string.IsNullOrWhiteSpace(pollResult.Error))
+                    Console.WriteLine($"[Device {device.Id}] Poll: {pollResult.Error}");
 
                 if (payload.Count > 0)
                 {
-                    // 写入内存快照 Store，供 UI 绑定（与 MQTT 无关）
+                    _pointCache?.CommitPoll(device.Id, device, payload, pollStartedUtc);
+
                     PublishSnapshot(device, payload, pollStartedUtc);
 
-                    // ── MQTT 遥测：已连接 + 达发布间隔 + 配置了 PubTopic ──
-                    if (_cachedMqttConfig is { IsEnabled: true }
+                    if (_cachedMqttConfig is { IsEnabled: true, TelemetryPublishInterval: <= 0 }
                         && _mqttClient != null
                         && _mqttClient.IsConnected
-                        && ShouldPublishTelemetryForDevice(device.Id, pollStartedUtc, _cachedMqttConfig.TelemetryPublishInterval)
                         && !string.IsNullOrWhiteSpace(_cachedMqttConfig.PubTopic))
                     {
-                        await PublishTelemetryAsync(device.Id, payload, ct).ConfigureAwait(false);
-                        _lastTelemetryPublishTimes[device.Id] = DateTime.UtcNow;
+                        await PublishTelemetryForDeviceFromCacheAsync(device, ct).ConfigureAwait(false);
                     }
                 }
 
-                // 无论是否有 payload，均更新完成时间（避免失败设备被高频重试）
                 _lastPollTimes[device.Id] = DateTime.UtcNow;
             }
             catch (Exception ex)
@@ -513,56 +423,8 @@ namespace Lana.Gateway.Services
             }
             finally
             {
-                // 释放在途标记，允许下一轮调度
                 _pollingDevices.TryRemove(device.Id, out _);
             }
-        }
-
-        /// <summary>
-        /// 同步读取单设备所有变量，填充 payload 字典；处理连接、退避与异常。
-        /// </summary>
-        /// <param name="device">目标设备。</param>
-        /// <param name="session">已分配的协议会话。</param>
-        /// <param name="now">当前 UTC 时间（退避登记用）。</param>
-        /// <returns>Alias/Key → 值的字典；连接失败时可能为空。</returns>
-        private Dictionary<string, object> PollDevicePayload(
-            Device device,
-            IDeviceProtocolSession session,
-            DateTime now)
-        {
-            var payload = new Dictionary<string, object>();
-            try
-            {
-                // ── 协议连接：未连接则 Open ──
-                if (!session.IsConnected)
-                {
-                    var openResult = session.Open();
-                    if (!openResult.Success)
-                    {
-                        _deviceOnlineStatus[device.Id] = false;
-                        RegisterDeviceFailure(device.Id, now, openResult.Error ?? "连接失败");
-                        return payload;
-                    }
-                }
-
-                // ── 连接成功：清除退避、标记在线、按协议读点 ──
-                if (session.IsConnected)
-                {
-                    ClearDeviceFailure(device.Id);
-                    _deviceOnlineStatus[device.Id] = true;
-                    FillDevicePayload(device, session, payload);
-                }
-            }
-            catch (Exception ex)
-            {
-                Console.WriteLine($"[Device {device.Id}] Error: {ex.Message}");
-                // 异常时关闭会话，下次轮询重新 Open
-                try { session.Close(); } catch { /* ignore */ }
-                _deviceOnlineStatus[device.Id] = false;
-                RegisterDeviceFailure(device.Id, now, ex.Message);
-            }
-
-            return payload;
         }
 
         /// <summary>
@@ -576,7 +438,7 @@ namespace Lana.Gateway.Services
             if (_snapshotStore is null || payload.Count == 0)
                 return;
 
-            var entries = BuildSnapshotEntries(device, payload, nowUtc);
+            var entries = DeviceSnapshotBuilder.BuildStatusEntries(device, payload, nowUtc);
             if (entries.Count == 0)
                 return;
 
@@ -584,21 +446,65 @@ namespace Lana.Gateway.Services
         }
 
         /// <summary>
-        /// 判断是否到达该设备的 MQTT 遥测发布间隔。
+        /// 主循环：按全局 TelemetryPublishInterval 从缓存批量上报遥测。
         /// </summary>
-        /// <param name="deviceId">设备 ID。</param>
-        /// <param name="nowUtc">当前 UTC 时间。</param>
-        /// <param name="intervalMs">配置的遥测发布间隔（毫秒）；≤0 表示每次轮询都发布。</param>
-        /// <returns>应发布返回 true。</returns>
-        private bool ShouldPublishTelemetryForDevice(long deviceId, DateTime nowUtc, int intervalMs)
+        private async Task TryPublishTelemetryFromCacheAsync(DateTime nowUtc, CancellationToken ct)
         {
-            if (intervalMs <= 0)
-                return true;
+            if (_pointCache is null
+                || _cachedMqttConfig is null
+                || _mqttClient is null
+                || !_mqttClient.IsConnected
+                || string.IsNullOrWhiteSpace(_cachedMqttConfig.PubTopic))
+                return;
 
-            if (!_lastTelemetryPublishTimes.TryGetValue(deviceId, out var last))
-                return true;
+            var interval = _cachedMqttConfig.TelemetryPublishInterval;
+            if (interval <= 0)
+                return;
 
-            return (nowUtc - last).TotalMilliseconds >= intervalMs;
+            if ((nowUtc - _lastGlobalTelemetryPublish).TotalMilliseconds < interval)
+                return;
+
+            _lastGlobalTelemetryPublish = nowUtc;
+
+            foreach (var device in _cachedDevices)
+            {
+                if (device.PollInterval <= 0)
+                    continue;
+
+                if (!device.Variables.Any(DeviceVariablePollRules.ShouldPoll))
+                    continue;
+
+                await PublishTelemetryForDeviceFromCacheAsync(device, ct).ConfigureAwait(false);
+            }
+        }
+
+        /// <summary>
+        /// 从点缓存读取 IncludeInTelemetry 子集并发布 MQTT 遥测。
+        /// </summary>
+        private async Task PublishTelemetryForDeviceFromCacheAsync(Device device, CancellationToken ct)
+        {
+            if (_pointCache is null
+                || _cachedMqttConfig is null
+                || _mqttClient is null
+                || !_mqttClient.IsConnected
+                || string.IsNullOrWhiteSpace(_cachedMqttConfig.PubTopic))
+                return;
+
+            var version = _pointCache.GetVersion(device.Id);
+            if (version <= 0)
+                return;
+
+            if (_lastTelemetryPublishedVersion.TryGetValue(device.Id, out var lastVersion)
+                && lastVersion == version)
+                return;
+
+            var payload = _pointCache.GetTelemetryPayload(device);
+            if (payload.Count == 0)
+                return;
+
+            await PublishTelemetryAsync(device.Id, payload, ct).ConfigureAwait(false);
+            _lastTelemetryPublishedVersion[device.Id] = version;
+            _lastTelemetryPublishTimes[device.Id] = DateTime.UtcNow;
         }
 
         /// <summary>
@@ -610,7 +516,7 @@ namespace Lana.Gateway.Services
         /// <returns>发布完成。</returns>
         private async Task PublishTelemetryAsync(
             long deviceId,
-            Dictionary<string, object> payload,
+            IReadOnlyDictionary<string, object> payload,
             CancellationToken ct)
         {
             if (_cachedMqttConfig is null || _mqttClient is null || !_mqttClient.IsConnected)
@@ -629,136 +535,6 @@ namespace Lana.Gateway.Services
                 .Build();
 
             await _mqttClient.PublishAsync(message, ct);
-        }
-
-        /// <summary>
-        /// 由 payload 构建快照 DTO：先按物模型 Alias 匹配，再追加 payload 中未映射的扩展键。
-        /// Label 优先 Description，值经 <see cref="FormatSnapshotValue"/> 格式化。
-        /// </summary>
-        /// <param name="device">设备（含变量定义）。</param>
-        /// <param name="payload">采集结果。</param>
-        /// <param name="updatedAtUtc">快照更新时间。</param>
-        /// <returns>快照条目列表。</returns>
-        private static List<DeviceVariableSnapshotEntry> BuildSnapshotEntries(
-            Device device,
-            Dictionary<string, object> payload,
-            DateTime updatedAtUtc)
-        {
-            var list = new List<DeviceVariableSnapshotEntry>();
-            var usedKeys = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-
-            // 第一遍：按物模型 Alias 匹配已知变量
-            foreach (var variable in device.Variables)
-            {
-                if (string.IsNullOrWhiteSpace(variable.Alias))
-                    continue;
-                if (!payload.TryGetValue(variable.Alias, out var val) || val is null)
-                    continue;
-
-                usedKeys.Add(variable.Alias);
-                list.Add(new DeviceVariableSnapshotEntry
-                {
-                    VariableId = variable.Id,
-                    Label = ResolveSnapshotLabel(variable),
-                    ValueText = FormatSnapshotValue(val),
-                    UpdatedAtUtc = updatedAtUtc,
-                });
-            }
-
-            // 第二遍：追加 payload 中未映射的扩展键（如 HttpClient 动态 KV）
-            foreach (var kv in payload)
-            {
-                if (usedKeys.Contains(kv.Key) || kv.Value is null)
-                    continue;
-
-                list.Add(new DeviceVariableSnapshotEntry
-                {
-                    VariableId = 0,
-                    Label = kv.Key,
-                    ValueText = FormatSnapshotValue(kv.Value),
-                    UpdatedAtUtc = updatedAtUtc,
-                });
-            }
-
-            return list;
-        }
-
-        /// <summary>快照展示标签：Description → Alias → Address。</summary>
-        /// <param name="variable">设备变量定义。</param>
-        /// <returns>UI 展示用标签字符串。</returns>
-        private static string ResolveSnapshotLabel(DeviceVariable variable)
-        {
-            if (!string.IsNullOrWhiteSpace(variable.Description))
-                return variable.Description.Trim();
-            if (!string.IsNullOrWhiteSpace(variable.Alias))
-                return variable.Alias.Trim();
-            return variable.Address;
-        }
-
-        /// <summary>将协议返回值格式化为 UI / 快照可用的字符串。</summary>
-        /// <param name="value">原始协议值。</param>
-        /// <returns>格式化后的字符串。</returns>
-        private static string FormatSnapshotValue(object value)
-            => value switch
-            {
-                bool b => b ? "true" : "false",
-                string s => s,
-                _ => value.ToString() ?? string.Empty,
-            };
-
-        /// <summary>
-        /// 填充设备上报 data。HttpClient 按物模型 key/value JSON 路径展开；其它协议按 Alias 读点。
-        /// </summary>
-        /// <param name="device">目标设备。</param>
-        /// <param name="session">已连接的协议会话。</param>
-        /// <param name="payload">待填充的输出字典（Alias/Key → 值）。</param>
-        private static void FillDevicePayload(Device device, IDeviceProtocolSession session, Dictionary<string, object> payload)
-        {
-            // ── HttpClient 协议：按 JSON 路径读取动态 KV 映射 ──
-            if (device.ProtocolType == ProtocolType.HttpClient && session is HttpClientDeviceSession httpSession)
-            {
-                foreach (var variable in device.Variables)
-                {
-                    try
-                    {
-                        var map = httpSession.ReadKeyValueMap(variable.HttpKeyJsonPath, variable.HttpValueJsonPath);
-                        if (!map.Success || map.Value == null)
-                        {
-                            Console.WriteLine($"[Device {device.Id}] HttpClient KV map failed ({variable.HttpKeyJsonPath}/{variable.HttpValueJsonPath}): {map.Error}");
-                            continue;
-                        }
-
-                        foreach (var kv in map.Value)
-                        {
-                            if (string.IsNullOrWhiteSpace(kv.Key) || kv.Value == null) continue;
-                            payload[kv.Key] = kv.Value;
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[Device {device.Id}] Exception reading HttpClient KV map: {ex.Message}");
-                    }
-                }
-                return;
-            }
-
-            // ── 其它协议：逐变量 Read，成功则写入 Alias ──
-            foreach (var variable in device.Variables)
-            {
-                object? val = null;
-                try
-                {
-                    var read = session.Read(variable.Address, (ProtocolDataType)(int)variable.DataType);
-                    if (read.Success)
-                        val = read.Value;
-                }
-                catch
-                {
-                    /* 单点失败跳过，避免大量 Console 输出拖慢轮询 */
-                }
-
-                if (val != null) payload[variable.Alias] = val;
-            }
         }
 
         /// <summary>
@@ -945,17 +721,14 @@ namespace Lana.Gateway.Services
         {
             try
             {
-                // ── 前置校验：MQTT 必须启用 ──
                 if (_cachedMqttConfig is not { IsEnabled: true })
                     return;
 
-                // ── 指令反序列化 ──
                 var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
-                var command = JsonSerializer.Deserialize<MqttCommand>(payload, options);
+                var command = JsonSerializer.Deserialize<MqttCommandDto>(payload, options);
                 if (command == null || command.DeviceId <= 0)
                     return;
 
-                // ── 目标设备查找与活跃性校验 ──
                 var device = _cachedDevices.FirstOrDefault(d => d.Id == command.DeviceId);
                 if (device == null || !device.IsActive)
                 {
@@ -963,174 +736,46 @@ namespace Lana.Gateway.Services
                     return;
                 }
 
-                var now = DateTime.UtcNow;
-                var session = AcquireSessionForDevice(device);
-                MqttApplicationMessage? messageToPublish = null;
-                var connected = false;
+                var ioResult = await _ioScheduler.ExecuteMqttCommandAsync(device, command).ConfigureAwait(false);
 
-                // ── 退避快速路径：未连接且处于退避 → 立即错误回包，不阻塞 Open ──
-                lock (session)
+                if (!string.IsNullOrWhiteSpace(ioResult.Error) && !ioResult.Connected)
                 {
-                    connected = session.IsConnected;
-                }
-
-                if (!connected && IsInBackoff(device.Id, now))
-                {
-                    Console.WriteLine($"[MQTT] Device {device.Id} 处于连接退避中，跳过本次指令（不影响其它设备）。");
-                    await PublishMqttErrorAsync(device.Id, "设备连接失败退避中，请稍后重试", ResolveReplyTo(command));
+                    await PublishMqttErrorAsync(device.Id, ioResult.Error, ioResult.ReplyTo);
                     return;
                 }
 
-                // ── 协议 IO 区：连接 → 写 → 读 → 组装回包（会话锁内串行）──
-                lock (session)
+                if (!ioResult.Connected)
                 {
-                    try
-                    {
-                        // 未连接则尝试 Open
-                        if (!session.IsConnected)
-                        {
-                            var openResult = session.Open();
-                            if (!openResult.Success)
-                            {
-                                Console.WriteLine($"[MQTT] Failed to connect to device {device.Id}: {openResult.Error}");
-                                RegisterDeviceFailure(device.Id, DateTime.UtcNow, openResult.Error ?? "连接失败");
-                                _deviceOnlineStatus[device.Id] = false;
-                            }
-                        }
-
-                        connected = session.IsConnected;
-                        if (connected)
-                        {
-                            ClearDeviceFailure(device.Id);
-                            _deviceOnlineStatus[device.Id] = true;
-
-                            // ── write 分支：按 Alias 写可写变量 ──
-                            if (command.Action?.ToLower() == "write" && command.Writes != null)
-                            {
-                                foreach (var write in command.Writes)
-                                {
-                                    var variable = device.Variables.FirstOrDefault(v => v.Alias == write.Key);
-                                    if (variable != null && variable.ReadWrite != ReadWriteAccess.ReadOnly)
-                                    {
-                                        try
-                                        {
-                                            var strVal = write.Value?.ToString();
-                                            if (strVal != null)
-                                            {
-                                                Console.WriteLine($"[MQTT] Writing to {variable.Alias} ({variable.Address}): {strVal}");
-                                                var wr = session.Write(variable.Address, (ProtocolDataType)(int)variable.DataType, strVal);
-                                                if (!wr.Success)
-                                                    Console.WriteLine($"[MQTT] Write failed for {variable.Alias}: {wr.Error}");
-                                            }
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Console.WriteLine($"[MQTT] Write error for {variable.Alias}: {ex.Message}");
-                                        }
-                                    }
-                                    else
-                                    {
-                                        Console.WriteLine($"[MQTT] Variable {write.Key} not found or is read-only.");
-                                    }
-                                }
-                            }
-
-                            // ── query / write 分支：读点并组装回包 payload ──
-                            if (command.Action?.ToLower() == "query" || command.Action?.ToLower() == "write")
-                            {
-                                var resultPayload = new Dictionary<string, object>();
-                                var replyTo = ResolveReplyTo(command);
-
-                                if (device.ProtocolType == ProtocolType.HttpClient)
-                                {
-                                    // HttpClient：复用 FillDevicePayload 读动态 KV
-                                    FillDevicePayload(device, session, resultPayload);
-                                }
-                                else
-                                {
-                                    // 其它协议：Reads 指定 Alias 子集，否则读全部变量
-                                    var variablesToQuery = (command.Reads != null && command.Reads.Any())
-                                        ? device.Variables.Where(v => command.Reads.Contains(v.Alias))
-                                        : device.Variables;
-
-                                    foreach (var variable in variablesToQuery)
-                                    {
-                                        object? val = null;
-                                        try
-                                        {
-                                            var read = session.Read(variable.Address, (ProtocolDataType)(int)variable.DataType);
-                                            if (read.Success)
-                                                val = read.Value;
-                                            else
-                                                Console.WriteLine($"[MQTT] Failed to read {variable.Alias} ({variable.Address}): {read.Error}");
-                                        }
-                                        catch (Exception ex)
-                                        {
-                                            Console.WriteLine($"[MQTT] Exception reading {variable.Alias} ({variable.Address}): {ex.Message}");
-                                        }
-
-                                        if (val != null) resultPayload[variable.Alias] = val;
-                                    }
-                                }
-
-                                // 有数据且配置了 PubTopic：构建 MQTT 回包消息（稍后锁外发布）
-                                if (resultPayload.Any() && _cachedMqttConfig != null && !string.IsNullOrEmpty(_cachedMqttConfig.PubTopic))
-                                {
-                                    var json = JsonSerializer.Serialize(new
-                                    {
-                                        deviceId = device.Id,
-                                        timestamp = DateTime.Now,
-                                        data = resultPayload,
-                                        replyTo
-                                    }, MqttJsonOptions);
-
-                                    messageToPublish = new MqttApplicationMessageBuilder()
-                                        .WithTopic(_cachedMqttConfig.PubTopic)
-                                        .WithPayload(json)
-                                        .Build();
-                                }
-                            }
-                        }
-                    }
-                    catch (Exception ex)
-                    {
-                        Console.WriteLine($"[MQTT] Device {device.Id} error: {ex.Message}");
-                        try { session.Close(); } catch { /* ignore */ }
-                        RegisterDeviceFailure(device.Id, DateTime.UtcNow, ex.Message);
-                        _deviceOnlineStatus[device.Id] = false;
-                        connected = false;
-                    }
-                }
-
-                // ── 回包/错误响应（锁外异步发布，避免持锁 await）──
-                if (!connected && messageToPublish == null)
-                {
-                    await PublishMqttErrorAsync(device.Id, "设备当前不可达", ResolveReplyTo(command));
+                    await PublishMqttErrorAsync(device.Id, "设备当前不可达", ioResult.ReplyTo);
                     return;
                 }
 
-                if (messageToPublish != null && _mqttClient != null && _mqttClient.IsConnected)
-                    await _mqttClient.PublishAsync(messageToPublish);
+                if (ioResult.ReplyPayload is { Count: > 0 }
+                    && _mqttClient != null
+                    && _mqttClient.IsConnected
+                    && _cachedMqttConfig != null
+                    && !string.IsNullOrEmpty(_cachedMqttConfig.PubTopic))
+                {
+                    var json = JsonSerializer.Serialize(new
+                    {
+                        deviceId = device.Id,
+                        timestamp = DateTime.Now,
+                        data = ioResult.ReplyPayload,
+                        replyTo = ioResult.ReplyTo,
+                    }, MqttJsonOptions);
+
+                    var message = new MqttApplicationMessageBuilder()
+                        .WithTopic(_cachedMqttConfig.PubTopic)
+                        .WithPayload(json)
+                        .Build();
+
+                    await _mqttClient.PublishAsync(message);
+                }
             }
             catch (Exception ex)
             {
                 Console.WriteLine($"[MQTT] Execute command error: {ex.Message}");
             }
-        }
-
-        /// <summary>
-        /// replyTo：1=单写(不传 reads)；2=单读(query)；3=读写一体(write 且带 reads，含空数组)。
-        /// 每条指令独立解析、独立回包，并发时各自带上对应标志。
-        /// </summary>
-        /// <param name="command">已解析的 MQTT 指令。</param>
-        /// <returns>replyTo 标志值（1/2/3）。</returns>
-        private static int ResolveReplyTo(MqttCommand command)
-        {
-            var action = command.Action?.Trim().ToLowerInvariant();
-            if (action == "write")
-                return command.Reads != null ? 3 : 1;
-            // query 及其它默认按读
-            return 2;
         }
 
         /// <summary>
@@ -1169,29 +814,6 @@ namespace Lana.Gateway.Services
             {
                 Console.WriteLine($"[MQTT] Publish error reply failed: {ex.Message}");
             }
-        }
-
-        /// <summary>
-        /// MQTT 下行指令 JSON 反序列化 DTO（query 读 / write 写）。
-        /// </summary>
-        private class MqttCommand
-        {
-            /// <summary>可选消息 ID，用于客户端去重或追踪。</summary>
-            public string? MessageId { get; set; }
-
-            /// <summary>目标设备 ID。</summary>
-            public long DeviceId { get; set; }
-
-            /// <summary>动作类型：<c>query</c>（读）或 <c>write</c>（写，可附带 reads 做读写一体）。</summary>
-            public string Action { get; set; } = string.Empty;
-
-            /// <summary>写指令键值对（Alias → 值）；仅 action=write 时有效。</summary>
-            public Dictionary<string, object>? Writes { get; set; }
-
-            /// <summary>
-            /// 读指令 Alias 列表；null=未传 reads（单写→replyTo=1）；非 null（含 []）=读写一体→replyTo=3。
-            /// </summary>
-            public List<string>? Reads { get; set; }
         }
     }
 }

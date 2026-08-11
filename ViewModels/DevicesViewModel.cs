@@ -111,7 +111,7 @@ public sealed class DebugVariableItem
 
 /// <summary>
 /// 设备管理页（Admin）：设备 / 物模型 / MQTT / 调试读写 / 配置备份。
-/// 物模型上「手动操作」等字段仅影响手动操作页，不影响采集。
+/// 物模型采集三开关控制轮询、状态展示与 MQTT 周期上报；「手动操作」开关仅影响右侧按钮。
 /// 调试读写请走注入的 <see cref="IDeviceDebugApi"/>。
 /// </summary>
 public partial class DevicesViewModel : ViewModelBase
@@ -679,7 +679,28 @@ public partial class DevicesViewModel : ViewModelBase
 
     /// <summary>编辑中的读写权限索引。</summary>
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEditIncludeInPoll))]
+    [NotifyPropertyChangedFor(nameof(CanEditDerivedCollectionFlags))]
     private int _varReadWrite = (int)ReadWriteAccess.ReadWrite;
+
+    /// <summary>编辑中是否参与后台轮询。</summary>
+    [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(CanEditDerivedCollectionFlags))]
+    private bool _varIncludeInPoll = true;
+
+    /// <summary>编辑中是否在手动操作页状态区展示。</summary>
+    [ObservableProperty]
+    private bool _varShowInStatus = true;
+
+    /// <summary>编辑中是否纳入 MQTT 周期遥测。</summary>
+    [ObservableProperty]
+    private bool _varIncludeInTelemetry = true;
+
+    /// <summary>WriteOnly 时不可参与轮询。</summary>
+    public bool CanEditIncludeInPoll => VarReadWrite != (int)ReadWriteAccess.WriteOnly;
+
+    /// <summary>未参与轮询时不可单独勾选展示/上报。</summary>
+    public bool CanEditDerivedCollectionFlags => VarIncludeInPoll;
 
     /// <summary>编辑中的 HTTP Key JSON 路径。</summary>
     [ObservableProperty]
@@ -810,6 +831,9 @@ public partial class DevicesViewModel : ViewModelBase
         VarAlias = string.Empty;
         VarDescription = string.Empty;
         VarReadWrite = (int)ReadWriteAccess.ReadWrite;
+        VarIncludeInPoll = true;
+        VarShowInStatus = true;
+        VarIncludeInTelemetry = true;
         VarHttpKeyPath = string.Empty;
         VarHttpValuePath = string.Empty;
         VarShowOnDefinedPage = false;
@@ -840,6 +864,9 @@ public partial class DevicesViewModel : ViewModelBase
         VarAlias = v.Alias;
         VarDescription = v.Description;
         VarReadWrite = (int)v.ReadWrite;
+        VarIncludeInPoll = v.IncludeInPoll;
+        VarShowInStatus = v.ShowInStatus;
+        VarIncludeInTelemetry = v.IncludeInTelemetry;
         VarHttpKeyPath = v.HttpKeyJsonPath;
         VarHttpValuePath = v.HttpValueJsonPath;
         VarShowOnDefinedPage = v.ShowOnDefinedPage;
@@ -874,6 +901,14 @@ public partial class DevicesViewModel : ViewModelBase
             return;
         }
 
+        if (VarIncludeInPoll
+            && !ShowHttpVariableFields
+            && string.IsNullOrWhiteSpace(VarAlias))
+        {
+            StatusMessage = "参与轮询时请填写「别名」";
+            return;
+        }
+
         var isBool = (DataType)VarDataType is DataType.Bool or DataType.Coil or DataType.Discrete;
         if (VarShowOnDefinedPage
             && !isBool
@@ -899,6 +934,9 @@ public partial class DevicesViewModel : ViewModelBase
                 Alias = VarAlias?.Trim() ?? string.Empty,
                 Description = VarDescription?.Trim() ?? string.Empty,
                 ReadWrite = (ReadWriteAccess)VarReadWrite,
+                IncludeInPoll = VarIncludeInPoll,
+                ShowInStatus = VarShowInStatus,
+                IncludeInTelemetry = VarIncludeInTelemetry,
                 HttpKeyJsonPath = VarHttpKeyPath?.Trim() ?? string.Empty,
                 HttpValueJsonPath = VarHttpValuePath?.Trim() ?? string.Empty,
                 ShowOnDefinedPage = VarShowOnDefinedPage,
@@ -1760,7 +1798,52 @@ public partial class DevicesViewModel : ViewModelBase
             parts.Add(v.Description.Trim());
         if (v.ShowOnDefinedPage && !string.IsNullOrWhiteSpace(definedPageModeText))
             parts.Add($"手动·{definedPageModeText}");
+        parts.Add(FormatCollectionFlagsSummary(v));
         return string.Join(" · ", parts);
+    }
+
+    /// <summary>采集/展示/上报开关摘要。</summary>
+    private static string FormatCollectionFlagsSummary(DeviceVariable v)
+    {
+        if (!v.IncludeInPoll && !v.ShowInStatus && !v.IncludeInTelemetry)
+            return "未采集";
+
+        var flags = new List<string>(3);
+        if (v.IncludeInPoll) flags.Add("采");
+        if (v.ShowInStatus) flags.Add("展");
+        if (v.IncludeInTelemetry) flags.Add("报");
+        return string.Concat(flags);
+    }
+
+    partial void OnVarIncludeInPollChanged(bool value)
+    {
+        if (!value)
+        {
+            VarShowInStatus = false;
+            VarIncludeInTelemetry = false;
+        }
+
+        OnPropertyChanged(nameof(CanEditDerivedCollectionFlags));
+    }
+
+    partial void OnVarReadWriteChanged(int value)
+    {
+        if (value == (int)ReadWriteAccess.WriteOnly)
+            VarIncludeInPoll = false;
+
+        OnPropertyChanged(nameof(CanEditIncludeInPoll));
+    }
+
+    partial void OnVarShowInStatusChanged(bool value)
+    {
+        if (value)
+            VarIncludeInPoll = true;
+    }
+
+    partial void OnVarIncludeInTelemetryChanged(bool value)
+    {
+        if (value)
+            VarIncludeInPoll = true;
     }
 
     /// <summary>

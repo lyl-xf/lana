@@ -74,8 +74,9 @@ public sealed class Device
 }
 
 /// <summary>
-/// 物模型变量。Alias 用于 MQTT 上报/订阅字段名；
-/// ShowOnDefinedPage* 仅影响「手动操作」页按钮，不影响采集与上报。
+/// 物模型变量。Alias 用于 MQTT 上报/订阅字段名与缓存键。
+/// IncludeInPoll / ShowInStatus / IncludeInTelemetry 控制轮询、状态展示与周期上报范围；
+/// ShowOnDefinedPage* 仅影响「手动操作」页右侧按钮。
 /// </summary>
 public sealed class DeviceVariable
 {
@@ -93,6 +94,12 @@ public sealed class DeviceVariable
     public string Description { get; set; } = string.Empty;
     /// <summary>读写权限。</summary>
     public ReadWriteAccess ReadWrite { get; set; } = ReadWriteAccess.ReadWrite;
+    /// <summary>参与后台轮询并写入设备点缓存（WriteOnly 不可开启）。</summary>
+    public bool IncludeInPoll { get; set; } = true;
+    /// <summary>在手动操作页左侧状态区展示（须已参与轮询）。</summary>
+    public bool ShowInStatus { get; set; } = true;
+    /// <summary>纳入 MQTT 周期遥测上报（须已参与轮询）。</summary>
+    public bool IncludeInTelemetry { get; set; } = true;
     /// <summary>HttpClient：从响应中取 key 的 JSON Path。</summary>
     public string HttpKeyJsonPath { get; set; } = string.Empty;
     /// <summary>HttpClient：从响应中取 value 的 JSON Path。</summary>
@@ -124,7 +131,7 @@ public sealed class MqttConfig
     public string ClientId { get; set; } = string.Empty;
     /// <summary>MQTT 用户名（可为空）。</summary>
     public string Username { get; set; } = string.Empty;
-    /// <summary>MQTT 密码（可为空）。</summary>
+    /// <summary>MQTT 密码（可为空）。内存中为明文；落库时由 Mapper 加密。</summary>
     public string Password { get; set; } = string.Empty;
     /// <summary>遥测/指令响应发布主题。</summary>
     public string PubTopic { get; set; } = string.Empty;
@@ -135,8 +142,8 @@ public sealed class MqttConfig
     /// <summary>在线状态主题上报间隔（毫秒）。</summary>
     public int OnlineStatusReportInterval { get; set; } = 30000;
     /// <summary>
-    /// 周期遥测 PubTopic 最小间隔（毫秒，按设备）。
-    /// 0 = 每次轮询成功即上报；&gt;0 = 限频上报（轮询仍按 PollInterval 执行）。
+    /// 周期遥测 PubTopic 最小间隔（毫秒，全局调度）。
+    /// 0 = 每次轮询写入缓存后立即上报；&gt;0 = 独立周期读缓存（须 ≥ 设备采集周期）。
     /// </summary>
     public int TelemetryPublishInterval { get; set; }
 }

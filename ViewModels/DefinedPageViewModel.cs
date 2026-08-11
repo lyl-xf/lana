@@ -129,7 +129,7 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
             _liveState.PropertyChanged += OnLiveStatePropertyChanged;
             HasStatusData = _liveState.HasData;
             if (HasStatusData)
-                StatusPanelHint = "数据来自后台轮询（绑定共享状态，只读展示）";
+                StatusPanelHint = "数据来自后台轮询缓存（仅「状态展示」点位，只读）";
         }
 
         _ = LibVlcHost.EnsureInitializedAsync();
@@ -165,7 +165,7 @@ public partial class DefinedPageViewModel : ViewModelBase, IDisposable
 
     /// <summary>状态区顶部提示文案。</summary>
     [ObservableProperty]
-    private string _statusPanelHint = "开启「轮询查询」后将显示采集数据";
+    private string _statusPanelHint = "开启轮询后，勾选「状态展示」的点位将显示在左侧";
 
     /// <summary>
     /// Shell 切入本页时调用：刷新按钮与摄像头预览。

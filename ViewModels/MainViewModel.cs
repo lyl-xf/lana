@@ -48,6 +48,12 @@ public partial class MainViewModel : ViewModelBase
     /// <summary>轮询实时状态单例：Worker 写入、手动操作页绑定 Groups。登录期间保持同一实例。</summary>
     private readonly DeviceDataSnapshotStore _snapshotStore = new();
 
+    /// <summary>设备点 live 缓存：Poll commit 写入，MQTT 周期上报读取。</summary>
+    private readonly DevicePointCache _pointCache = new();
+
+    /// <summary>统一 IO 仲裁：Poll / 调试读写 / MQTT 指令共用 per-link 队列。</summary>
+    private readonly DeviceIoScheduler _ioScheduler;
+
     /// <summary>后台数据采集 Worker；登录后启动，登出后停止并释放。</summary>
     private DataCollectionWorker? _worker;
 
@@ -90,7 +96,8 @@ public partial class MainViewModel : ViewModelBase
         _settingsService = settingsService;
         _sessionFactory = sessionFactory;
         // 组合根：在此 new 各长寿命服务，再传入 Shell / 页面 VM
-        _deviceService = new GatewayDeviceService(sessionFactory);
+        _ioScheduler = new DeviceIoScheduler(new ProtocolSessionFactory(), _pointCache, _snapshotStore);
+        _deviceService = new GatewayDeviceService(sessionFactory, new ProtocolSessionFactory(), _ioScheduler);
         _cameraService = new CameraService(sessionFactory);
         _historyService = new DeviceOperationHistoryService(sessionFactory);
         _debugApi = new DeviceDebugApi(_deviceService, _historyService, authService);
@@ -121,8 +128,9 @@ public partial class MainViewModel : ViewModelBase
         // 启动后台轮询 Worker，写入共享快照 Store
         _worker = new DataCollectionWorker(
             new GatewayConfigStore(_sessionFactory),
-            new ProtocolSessionFactory(),
-            _snapshotStore);
+            _ioScheduler,
+            _snapshotStore,
+            _pointCache);
         _ = _worker.StartAsync();
 
         // 创建主壳并切换根内容为 Shell
@@ -151,8 +159,13 @@ public partial class MainViewModel : ViewModelBase
         // 停止并释放 Worker，避免后台继续轮询
         var worker = _worker;
         _worker = null;
+        _snapshotStore.Clear();
+        _pointCache.Clear();
         if (worker is not null)
             _ = StopWorkerAsync(worker);
+
+        _ = _ioScheduler.StopAsync();
+        _ioScheduler.SetConnectionHandlers(null);
 
         CurrentViewModel = CreateLogin();
     }

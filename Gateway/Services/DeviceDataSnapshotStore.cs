@@ -59,6 +59,12 @@ public sealed partial class DeviceDataSnapshotStore : ObservableObject, IDeviceD
     }
 
     /// <inheritdoc />
+    public void PatchPoint(long deviceId, string deviceName, DeviceVariableSnapshotEntry entry)
+    {
+        Dispatcher.UIThread.Post(() => ApplyPatchOnUiThread(deviceId, deviceName, entry), DispatcherPriority.Background);
+    }
+
+    /// <inheritdoc />
     public void Clear()
     {
         lock (_gate)
@@ -120,6 +126,42 @@ public sealed partial class DeviceDataSnapshotStore : ObservableObject, IDeviceD
         SyncPoints(group, entries);
     }
 
+    /// <summary>UI 线程：合并单点写入后的状态更新。</summary>
+    private void ApplyPatchOnUiThread(long deviceId, string deviceName, DeviceVariableSnapshotEntry entry)
+    {
+        if (!_groupsById.TryGetValue(deviceId, out var group))
+        {
+            group = new DeviceLiveGroup { DeviceId = deviceId, DeviceName = deviceName };
+            _groupsById[deviceId] = group;
+            InsertGroupSorted(group);
+        }
+        else if (!string.Equals(group.DeviceName, deviceName, StringComparison.Ordinal))
+        {
+            group.DeviceName = deviceName;
+            ResortGroup(group);
+        }
+
+        group.UpdatedText = entry.UpdatedAtUtc.ToLocalTime().ToString("HH:mm:ss");
+
+        var key = PointKey(entry);
+        var index = FindPointIndex(group.Points, key);
+        if (index >= 0)
+        {
+            UpdatePointValue(group.Points[index], entry.ValueText);
+        }
+        else
+        {
+            group.Points.Add(new DeviceLivePoint
+            {
+                VariableId = entry.VariableId,
+                Label = entry.Label,
+                ValueText = entry.ValueText,
+            });
+        }
+
+        HasData = Groups.Any(g => g.Points.Count > 0);
+    }
+
     /// <summary>
     /// UI 线程：将 <paramref name="entries"/> 与分组内 <see cref="DeviceLiveGroup.Points"/> 对齐。
     /// 移除多余点、调整顺序、新增点；已存在点仅更新 <see cref="DeviceLivePoint.ValueText"/>。
@@ -169,9 +211,17 @@ public sealed partial class DeviceDataSnapshotStore : ObservableObject, IDeviceD
                 continue;
             }
 
-            if (!string.Equals(point.ValueText, entry.ValueText, StringComparison.Ordinal))
-                point.ValueText = entry.ValueText;
+            UpdatePointValue(point, entry.ValueText);
         }
+    }
+
+    /// <summary>更新点位值，并在发生变化时标记 <see cref="DeviceLivePoint.IsValueChanged"/>。</summary>
+    private static void UpdatePointValue(DeviceLivePoint point, string newValueText)
+    {
+        var changed = !string.Equals(point.ValueText, newValueText, StringComparison.Ordinal);
+        if (changed)
+            point.ValueText = newValueText;
+        point.IsValueChanged = changed;
     }
 
     /// <summary>按设备名（不区分大小写）、再按 Id 插入 <see cref="Groups"/>。</summary>

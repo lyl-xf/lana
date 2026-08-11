@@ -73,6 +73,12 @@ public sealed class DeviceVariableBackupDto
     public string HttpValueJsonPath { get; set; } = string.Empty;
     /// <summary>是否在定义页显示。</summary>
     public bool ShowOnDefinedPage { get; set; }
+    /// <summary>参与后台轮询。</summary>
+    public bool IncludeInPoll { get; set; } = true;
+    /// <summary>手动操作页状态展示。</summary>
+    public bool ShowInStatus { get; set; } = true;
+    /// <summary>MQTT 周期遥测上报。</summary>
+    public bool IncludeInTelemetry { get; set; } = true;
     /// <summary>定义页按钮显示名。</summary>
     public string DefinedPageDisplayName { get; set; } = string.Empty;
     /// <summary>定义页按钮操作类型。</summary>

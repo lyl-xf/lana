@@ -45,4 +45,8 @@ public partial class DeviceLivePoint : ObservableObject
     /// <summary>右侧采集值文本（已格式化，可直接绑定）。</summary>
     [ObservableProperty]
     private string _valueText = string.Empty;
+
+    /// <summary>本轮相对上次是否发生变化；用于 UI 浅红高亮，未变化轮次自动恢复。</summary>
+    [ObservableProperty]
+    private bool _isValueChanged;
 }

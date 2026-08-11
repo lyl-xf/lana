@@ -109,6 +109,9 @@ public sealed class DeviceVariableMapper
         DefinedPageDisplayName = row.DefinedPageDisplayName ?? string.Empty,
         DefinedPageOperation = (DefinedPageOperation)row.DefinedPageOperation,
         DefinedPageWriteValue = row.DefinedPageWriteValue ?? string.Empty,
+        IncludeInPoll = row.IncludeInPoll != 0,
+        ShowInStatus = row.ShowInStatus != 0,
+        IncludeInTelemetry = row.IncludeInTelemetry != 0,
     };
 
     /// <summary>
@@ -131,6 +134,9 @@ public sealed class DeviceVariableMapper
         DefinedPageDisplayName = variable.DefinedPageDisplayName ?? string.Empty,
         DefinedPageOperation = (int)variable.DefinedPageOperation,
         DefinedPageWriteValue = variable.DefinedPageWriteValue ?? string.Empty,
+        IncludeInPoll = variable.IncludeInPoll ? 1 : 0,
+        ShowInStatus = variable.ShowInStatus ? 1 : 0,
+        IncludeInTelemetry = variable.IncludeInTelemetry ? 1 : 0,
     };
 
     /// <summary>Dapper 映射用的内部行类型。</summary>
@@ -149,6 +155,9 @@ public sealed class DeviceVariableMapper
         public string? DefinedPageDisplayName { get; set; }
         public int DefinedPageOperation { get; set; }
         public string? DefinedPageWriteValue { get; set; }
+        public int IncludeInPoll { get; set; }
+        public int ShowInStatus { get; set; }
+        public int IncludeInTelemetry { get; set; }
     }
 
     /// <summary>变量表 SQL 语句常量。</summary>
@@ -158,7 +167,8 @@ public sealed class DeviceVariableMapper
         public const string Columns = """
             Id, DeviceId, Address, DataType, Alias, Description, ReadWrite,
             HttpKeyJsonPath, HttpValueJsonPath, ShowOnDefinedPage, DefinedPageDisplayName,
-            DefinedPageOperation, DefinedPageWriteValue
+            DefinedPageOperation, DefinedPageWriteValue,
+            IncludeInPoll, ShowInStatus, IncludeInTelemetry
             """;
 
         /// <summary>按设备 Id 查询变量。</summary>
@@ -182,11 +192,13 @@ public sealed class DeviceVariableMapper
             INSERT INTO DeviceVariables (
                 DeviceId, Address, DataType, Alias, Description, ReadWrite,
                 HttpKeyJsonPath, HttpValueJsonPath, ShowOnDefinedPage, DefinedPageDisplayName,
-                DefinedPageOperation, DefinedPageWriteValue
+                DefinedPageOperation, DefinedPageWriteValue,
+                IncludeInPoll, ShowInStatus, IncludeInTelemetry
             ) VALUES (
                 @DeviceId, @Address, @DataType, @Alias, @Description, @ReadWrite,
                 @HttpKeyJsonPath, @HttpValueJsonPath, @ShowOnDefinedPage, @DefinedPageDisplayName,
-                @DefinedPageOperation, @DefinedPageWriteValue
+                @DefinedPageOperation, @DefinedPageWriteValue,
+                @IncludeInPoll, @ShowInStatus, @IncludeInTelemetry
             );
             """;
 
@@ -204,7 +216,10 @@ public sealed class DeviceVariableMapper
                 ShowOnDefinedPage = @ShowOnDefinedPage,
                 DefinedPageDisplayName = @DefinedPageDisplayName,
                 DefinedPageOperation = @DefinedPageOperation,
-                DefinedPageWriteValue = @DefinedPageWriteValue
+                DefinedPageWriteValue = @DefinedPageWriteValue,
+                IncludeInPoll = @IncludeInPoll,
+                ShowInStatus = @ShowInStatus,
+                IncludeInTelemetry = @IncludeInTelemetry
             WHERE Id = @Id;
             """;
 

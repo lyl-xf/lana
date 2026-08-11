@@ -81,7 +81,8 @@
                                 <TextBlock Text="{Binding Label}" Classes="muted-text" FontSize="11"
                                            TextWrapping="Wrap" VerticalAlignment="Center"/>
                                 <TextBlock Grid.Column="1" Text="{Binding ValueText}"
-                                           Foreground="{DynamicResource AppAccentBrush}"
+                                           Classes="status-value"
+                                           Classes.changed="{Binding IsValueChanged}"
                                            FontWeight="SemiBold" FontSize="11"
                                            VerticalAlignment="Center" HorizontalAlignment="Right"/>
                               </Grid>
@@ -113,33 +114,38 @@
                 </ItemsControl.ItemsPanel>
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:DefinedVariableAction">
-                    <Panel Margin="0,0,8,8">
-                      <Button Classes="cta-button"
-                              Content="{Binding ButtonText}"
-                              MinWidth="120"
-                              MinHeight="40"
-                              Padding="12,8"
+                    <Panel Margin="12,12,24,24">
+                      <Button Classes="defined-op-circle"
+                              ToolTip.Tip="{Binding ButtonText}"
                               IsVisible="{Binding IsClickAction}"
                               Command="{Binding #Root.((vm:DefinedPageViewModel)DataContext).ExecuteButtonCommand}"
                               CommandParameter="{Binding}"
-                              IsEnabled="{Binding !IsBusy}"/>
+                              IsEnabled="{Binding !IsBusy}">
+                        <TextBlock Text="{Binding ButtonText}"
+                                   Classes="on-accent-text"
+                                   FontSize="11"
+                                   FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
+                                   MaxWidth="62"/>
+                      </Button>
 
-                      <Border Classes="cta-button"
-                              MinWidth="120"
-                              MinHeight="40"
-                              Padding="12,8"
-                              Cursor="Hand"
+                      <Border Classes="defined-op-circle"
+                              Classes.pressed="{Binding IsPressed}"
+                              ToolTip.Tip="{Binding ButtonText}"
                               IsVisible="{Binding IsMomentaryBool}"
-                              Background="{DynamicResource AppCtaGradientBrush}"
-                              CornerRadius="14"
                               PointerPressed="OnMomentaryPressed"
                               PointerReleased="OnMomentaryReleased"
                               PointerCaptureLost="OnMomentaryCaptureLost">
                         <TextBlock Text="{Binding ButtonText}"
                                    Classes="on-accent-text"
+                                   FontSize="11"
                                    FontWeight="SemiBold"
+                                   TextWrapping="Wrap"
+                                   TextAlignment="Center"
                                    HorizontalAlignment="Center"
-                                   VerticalAlignment="Center"/>
+                                   VerticalAlignment="Center"
+                                   MaxWidth="62"/>
                       </Border>
                     </Panel>
                   </DataTemplate>

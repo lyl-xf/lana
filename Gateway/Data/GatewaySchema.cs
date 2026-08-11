@@ -55,6 +55,12 @@ public static class GatewaySchema
             "ALTER TABLE MqttConfigs ADD COLUMN EnablePolling INTEGER NOT NULL DEFAULT 1;");
         await EnsureColumnAsync(session, "MqttConfigs", "TelemetryPublishInterval",
             "ALTER TABLE MqttConfigs ADD COLUMN TelemetryPublishInterval INTEGER NOT NULL DEFAULT 0;");
+        await EnsureColumnAsync(session, "DeviceVariables", "IncludeInPoll",
+            "ALTER TABLE DeviceVariables ADD COLUMN IncludeInPoll INTEGER NOT NULL DEFAULT 1;");
+        await EnsureColumnAsync(session, "DeviceVariables", "ShowInStatus",
+            "ALTER TABLE DeviceVariables ADD COLUMN ShowInStatus INTEGER NOT NULL DEFAULT 1;");
+        await EnsureColumnAsync(session, "DeviceVariables", "IncludeInTelemetry",
+            "ALTER TABLE DeviceVariables ADD COLUMN IncludeInTelemetry INTEGER NOT NULL DEFAULT 1;");
 
         // 操作历史表（独立 Schema 类）
         await DeviceOperationLogSchema.EnsureAsync(session);
@@ -125,7 +131,10 @@ public static class GatewaySchema
                 ShowOnDefinedPage INTEGER NOT NULL DEFAULT 0,
                 DefinedPageDisplayName TEXT NOT NULL DEFAULT '',
                 DefinedPageOperation INTEGER NOT NULL DEFAULT 0,
-                DefinedPageWriteValue TEXT NOT NULL DEFAULT ''
+                DefinedPageWriteValue TEXT NOT NULL DEFAULT '',
+                IncludeInPoll INTEGER NOT NULL DEFAULT 1,
+                ShowInStatus INTEGER NOT NULL DEFAULT 1,
+                IncludeInTelemetry INTEGER NOT NULL DEFAULT 1
             );
 
             CREATE INDEX IF NOT EXISTS IX_DeviceVariables_DeviceId ON DeviceVariables(DeviceId);
