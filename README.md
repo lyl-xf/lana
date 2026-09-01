@@ -2,6 +2,8 @@
 基于 **.NET 9 + Avalonia 12** 的跨平台桌面应用骨架，带炫酷深色/白色风格界面。
 
 
+
+
 ## 跨平台发布
 
 ```bash
@@ -19,6 +21,11 @@ dotnet publish -c Release -r osx-arm64 --self-contained true
 ```
 
 发布产物在 `bin/Release/net9.0/<rid>/publish/`。
+
+
+## mqtt格式说明
+
+[MQTT格式说明](格式说明.md)
 
 ## 图片一览
 ![1.png](Assets%2F1.png)
@@ -40,3 +47,9 @@ dotnet publish -c Release -r osx-arm64 --self-contained true
 - 在线文本：<https://www.gnu.org/licenses/old-licenses/lgpl-2.1.html>
 
 对应版本的 LibVLC / LibVLCSharp 源码请从上方上游仓库获取（与本项目 `csproj` 中的 NuGet 版本一致）。分发本应用时，请一并保留 `Licenses/` 目录。
+
+
+
+## 你或许感兴趣：
+
+基于java的轻量级iot平台[sana](https://github.com/lyl-xf/sana)
