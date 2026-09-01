@@ -29,7 +29,6 @@ dotnet publish -c Release -r osx-arm64 --self-contained true
 
 ![4.png](Assets%2F4.png)
 
-![5.png](Assets%2F5.png)
 
 ## 关于摄像头预览许可说明
 
