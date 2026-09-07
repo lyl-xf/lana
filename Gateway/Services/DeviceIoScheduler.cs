@@ -355,6 +355,8 @@ public sealed class DeviceIoScheduler : IDeviceIoScheduler
                 }
 
                 var result = session.Read(address, (ProtocolDataType)(int)dataType);
+                if (!session.IsConnected)
+                    HandleSessionError(session, device, handlers, new InvalidOperationException(result.Error ?? "会话已断开"));
                 tcs.TrySetResult(result);
             }
             catch (Exception ex)
@@ -469,6 +471,18 @@ public sealed class DeviceIoScheduler : IDeviceIoScheduler
                     DevicePayloadBuilder.FillQueryPayload(device, session, command.Reads, replyPayload);
                 }
 
+                if (!session.IsConnected)
+                {
+                    HandleSessionError(session, device, handlers, new InvalidOperationException("会话已断开"));
+                    tcs.TrySetResult(new MqttIoCommandResult
+                    {
+                        Connected = false,
+                        Error = "token 刷新失败，会话已断开",
+                        ReplyTo = ResolveReplyTo(command),
+                    });
+                    return Task.CompletedTask;
+                }
+
                 tcs.TrySetResult(new MqttIoCommandResult
                 {
                     Connected = true,
@@ -505,6 +519,7 @@ public sealed class DeviceIoScheduler : IDeviceIoScheduler
         private int _index;
         private bool _connected;
         private bool _prepared;
+        private bool _droppedDuringIo;
         private string? _error;
 
         public PollWorkRequestState(PollWorkRequest request)
@@ -539,6 +554,14 @@ public sealed class DeviceIoScheduler : IDeviceIoScheduler
 
             _steps[_index].Execute(session, _request.Device, _payload);
             _index++;
+
+            if (!session.IsConnected)
+            {
+                _droppedDuringIo = true;
+                _connected = false;
+                _error ??= "token 刷新失败，会话已断开";
+                _index = _steps.Count;
+            }
         }
 
         public void Complete(DeviceIoConnectionHandlers? handlers)
@@ -550,6 +573,8 @@ public sealed class DeviceIoScheduler : IDeviceIoScheduler
             }
             else
             {
+                if (_droppedDuringIo)
+                    handlers?.RegisterFailure?.Invoke(_request.Device.Id, DateTime.UtcNow, _error ?? "会话已断开");
                 handlers?.MarkOffline?.Invoke(_request.Device.Id);
             }
 

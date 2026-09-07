@@ -1,3 +1,4 @@
+using System.Net;
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
@@ -8,6 +9,9 @@ namespace Lana.Gateway.Services;
 
 /// <summary>
 /// HttpClient 协议会话：登录（可选）+ 查询，按物模型配置的 key/value JSON 路径展开为上报字典。
+///
+/// 查询鉴权失败时在会话内重新登录并重试原请求一次，不触发采集退避；
+/// 重登失败则关闭会话，由调度器按掉线处理。
 ///
 /// 物模型示例：HttpKeyJsonPath=<c>body.name</c>，HttpValueJsonPath=<c>body.value</c>。
 /// 当 responseBodyJsonPath 指向数组时，对每个元素取 name→key、value→value，合并进设备上报 data。
@@ -34,6 +38,14 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
 
     /// <summary>是否已释放 HttpClient 等资源。</summary>
     private bool _disposed;
+
+    /// <summary>一次 HTTP 调用的状态码与响应体；鉴权判断在调用方，不在发送层抛 401。</summary>
+    private readonly struct HttpCallResult
+    {
+        public HttpStatusCode Status { get; init; }
+        public required string Body { get; init; }
+        public bool IsSuccess { get; init; }
+    }
 
     /// <summary>HTTP 请求头键值对，用于 LoginHeaders / QueryHeaders 配置项。</summary>
     private sealed class HeaderItem
@@ -113,9 +125,14 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
     /// 打开会话：若配置了登录 URL 则先登录并提取 Token，否则直接标记为已连接。
     /// </summary>
     /// <returns>成功返回 <see cref="ProtocolResult.Ok"/>；登录或 Token 提取失败返回 Fail。</returns>
-    public ProtocolResult Open()
+    public ProtocolResult Open() => TryLogin();
+
+    /// <summary>
+    /// 执行登录并提取 Token。无登录 URL 时直接视为已连接。
+    /// 供 Open 与查询鉴权失败后的刷新共用；登录请求本身不走 token 重试。
+    /// </summary>
+    private ProtocolResult TryLogin()
     {
-        // 无登录 URL：跳过认证，直接进入可查询状态
         if (string.IsNullOrWhiteSpace(_config.LoginUrl))
         {
             _token = null;
@@ -125,7 +142,6 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
 
         try
         {
-            // 协议 IO：发送登录请求，不绑定 Token 到请求头
             var loginResponse = SendRequestAsync(
                     _config.LoginUrl,
                     _config.LoginMethod,
@@ -134,11 +150,21 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
                     bindLoginToken: false)
                 .GetAwaiter().GetResult();
 
-            // JSON 解析：按 TokenJsonPath 从响应中提取 Token
-            _token = ExtractJsonPathValue(loginResponse, _config.TokenJsonPath);
+            if (!loginResponse.IsSuccess)
+            {
+                _token = null;
+                _opened = false;
+                return ProtocolResult.Fail(
+                    $"登录失败: HTTP {(int)loginResponse.Status} {Truncate(loginResponse.Body, 500)}");
+            }
 
+            _token = ExtractJsonPathValue(loginResponse.Body, _config.TokenJsonPath);
             if (string.IsNullOrEmpty(_token))
-                return ProtocolResult.Fail($"无法从登录响应中提取 token，路径: {_config.TokenJsonPath}，响应: {Truncate(loginResponse, 500)}");
+            {
+                _opened = false;
+                return ProtocolResult.Fail(
+                    $"无法从登录响应中提取 token，路径: {_config.TokenJsonPath}，响应: {Truncate(loginResponse.Body, 500)}");
+            }
 
             _opened = true;
             return ProtocolResult.Ok();
@@ -295,6 +321,7 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
 
     /// <summary>
     /// 确保查询响应 body 已缓存；缓存超过 30 秒或未命中时重新发起查询请求。
+    /// 鉴权失败时重新登录并重试一次；网络/非鉴权错误不刷新 token、不关闭会话。
     /// </summary>
     /// <returns>body 可用时返回 Ok；未打开、未配置 URL 或查询失败时返回 Fail。</returns>
     private ProtocolResult EnsureBodyCached()
@@ -307,21 +334,11 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
 
         try
         {
-            // 缓存失效：无缓存或超过 30 秒 TTL 时重新查询
             if (_cachedBody == null || (DateTime.UtcNow - _cacheTimestamp).TotalSeconds > 30)
             {
-                // 协议 IO：发送查询请求，查询头自动绑定登录 Token
-                var queryResponse = SendRequestAsync(
-                        _config.QueryUrl,
-                        _config.QueryMethod,
-                        _config.QueryBody,
-                        headers: ResolveQueryHeaderKeys(),
-                        bindLoginToken: true)
-                    .GetAwaiter().GetResult();
-
-                // JSON 解析：按 ResponseBodyJsonPath 定位逻辑 body 并写入缓存
-                _cachedBody = ResolveBodyNode(queryResponse, _config.ResponseBodyJsonPath);
-                _cacheTimestamp = DateTime.UtcNow;
+                var fetched = FetchQueryBody();
+                if (!fetched.Success)
+                    return fetched;
             }
 
             if (_cachedBody == null)
@@ -335,6 +352,58 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
             return ProtocolResult.Fail($"查询失败: {ex.Message}");
         }
     }
+
+    /// <summary>
+    /// 发起查询；鉴权失败时重新登录并重放原请求一次。
+    /// 重登失败或刷新后仍鉴权失败则 <see cref="Close"/>，交给调度器按掉线退避。
+    /// </summary>
+    private ProtocolResult FetchQueryBody()
+    {
+        var query = SendQuery();
+        if (IsAuthFailure(query))
+        {
+            if (string.IsNullOrWhiteSpace(_config.LoginUrl))
+            {
+                _cachedBody = null;
+                return ProtocolResult.Fail(DescribeAuthFailure(query));
+            }
+
+            Console.WriteLine("[HttpClient] 查询鉴权失败，重新登录后重试一次");
+            var login = TryLogin();
+            if (!login.Success)
+            {
+                Close();
+                return ProtocolResult.Fail($"token 刷新失败: {login.Error}");
+            }
+
+            query = SendQuery();
+            if (IsAuthFailure(query))
+            {
+                Close();
+                return ProtocolResult.Fail("token 刷新后查询仍鉴权失败");
+            }
+        }
+
+        if (!query.IsSuccess)
+        {
+            _cachedBody = null;
+            return ProtocolResult.Fail($"查询失败: HTTP {(int)query.Status} {Truncate(query.Body, 500)}");
+        }
+
+        _cachedBody = ResolveBodyNode(query.Body, _config.ResponseBodyJsonPath);
+        _cacheTimestamp = DateTime.UtcNow;
+        return ProtocolResult.Ok();
+    }
+
+    /// <summary>发送一次查询请求，Header 绑定当前登录 Token。</summary>
+    private HttpCallResult SendQuery()
+        => SendRequestAsync(
+                _config.QueryUrl,
+                _config.QueryMethod,
+                _config.QueryBody,
+                headers: ResolveQueryHeaderKeys(),
+                bindLoginToken: true)
+            .GetAwaiter().GetResult();
 
     /// <summary>
     /// 从单个 JsonNode 按 key/value 路径提取一对键值并写入结果字典；key 经规范化处理。
@@ -439,15 +508,15 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
     }
 
     /// <summary>
-    /// 异步发送 HTTP 请求并返回响应体字符串。
+    /// 异步发送 HTTP 请求，返回状态码与响应体。
     /// </summary>
     /// <param name="url">请求 URL。</param>
     /// <param name="method">HTTP 方法（GET/POST）。</param>
     /// <param name="body">POST 请求体；GET 时可为 null。</param>
     /// <param name="headers">附加请求头列表。</param>
     /// <param name="bindLoginToken">为 true 时 Header Value 自动使用登录 Token；为 false 时使用配置 Value。</param>
-    /// <returns>响应体 UTF-8 字符串。</returns>
-    private async Task<string> SendRequestAsync(
+    /// <returns>HTTP 状态码与响应体；非 2xx 不抛异常，由调用方区分鉴权失败与其它错误。</returns>
+    private async Task<HttpCallResult> SendRequestAsync(
         string url,
         string method,
         string? body,
@@ -483,11 +552,136 @@ public sealed class HttpClientDeviceSession : IDeviceProtocolSession
         if (string.Equals(method, "POST", StringComparison.OrdinalIgnoreCase) && !string.IsNullOrEmpty(body))
             request.Content = new StringContent(body, Encoding.UTF8, "application/json");
 
-        // 协议 IO：发送请求并校验 HTTP 状态码
         using var response = await _http.SendAsync(request);
-        response.EnsureSuccessStatusCode();
-        return await response.Content.ReadAsStringAsync();
+        var text = await response.Content.ReadAsStringAsync();
+        return new HttpCallResult
+        {
+            Status = response.StatusCode,
+            Body = text,
+            IsSuccess = response.IsSuccessStatusCode,
+        };
     }
+
+    /// <summary>HTTP 401/403，或响应 JSON 根上的业务鉴权失败（如 code=401 / token 过期文案）。</summary>
+    private static bool IsAuthFailure(HttpCallResult response)
+        => IsAuthStatus(response.Status) || LooksLikeAuthFailureBody(response.Body);
+
+    private static bool IsAuthStatus(HttpStatusCode status)
+        => status is HttpStatusCode.Unauthorized or HttpStatusCode.Forbidden;
+
+    private static string DescribeAuthFailure(HttpCallResult response)
+        => $"查询鉴权失败: HTTP {(int)response.Status} {Truncate(response.Body, 500)}";
+
+    /// <summary>
+    /// 识别 HTTP 200 业务鉴权失败，避免把错误 body 写入 30 秒缓存。
+    /// 仅看 JSON 根节点，避免误伤业务数据里的 code 字段。
+    /// </summary>
+    private static bool LooksLikeAuthFailureBody(string? body)
+    {
+        if (string.IsNullOrWhiteSpace(body))
+            return false;
+
+        JsonNode? root;
+        try
+        {
+            root = JsonNode.Parse(body);
+        }
+        catch (JsonException)
+        {
+            return false;
+        }
+
+        if (root is not JsonObject obj)
+            return false;
+
+        var code = ReadRootCode(obj);
+        if (code is 401 or 403)
+            return true;
+
+        var msg = ReadRootMessage(obj);
+        if (string.IsNullOrWhiteSpace(msg) || !MessageLooksLikeAuthFailure(msg))
+            return false;
+
+        var success = ReadRootSuccess(obj);
+        if (success == false)
+            return true;
+        if (code is int c && c != 0)
+            return true;
+        return success is null && code is null;
+    }
+
+    private static int? ReadRootCode(JsonObject obj)
+    {
+        foreach (var key in new[] { "code", "status", "errcode", "errCode", "errorCode" })
+        {
+            if (!obj.TryGetPropertyValue(key, out var node) || node is not JsonValue jv)
+                continue;
+            if (jv.TryGetValue(out int i))
+                return i;
+            if (jv.TryGetValue(out long l) && l is >= int.MinValue and <= int.MaxValue)
+                return (int)l;
+            if (jv.TryGetValue(out string? s) && int.TryParse(s, out var parsed))
+                return parsed;
+        }
+
+        return null;
+    }
+
+    private static string? ReadRootMessage(JsonObject obj)
+    {
+        foreach (var key in new[] { "msg", "message", "error", "errmsg", "errMsg" })
+        {
+            if (!obj.TryGetPropertyValue(key, out var node) || node is null)
+                continue;
+            if (node is JsonValue jv && jv.TryGetValue(out string? s))
+                return s;
+            return node.ToString();
+        }
+
+        return null;
+    }
+
+    private static bool? ReadRootSuccess(JsonObject obj)
+    {
+        if (!obj.TryGetPropertyValue("success", out var node) || node is not JsonValue jv)
+            return null;
+        if (jv.TryGetValue(out bool b))
+            return b;
+        return null;
+    }
+
+    private static bool MessageLooksLikeAuthFailure(string text)
+    {
+        foreach (var needle in AuthFailureNeedles)
+        {
+            if (text.Contains(needle, StringComparison.OrdinalIgnoreCase))
+                return true;
+        }
+
+        return false;
+    }
+
+    private static readonly string[] AuthFailureNeedles =
+    [
+        "token expired",
+        "invalid token",
+        "token invalid",
+        "unauthorized",
+        "unauthorised",
+        "token过期",
+        "token 过期",
+        "token已过期",
+        "token失效",
+        "token 失效",
+        "令牌过期",
+        "令牌失效",
+        "登录过期",
+        "登录失效",
+        "登录超时",
+        "未登录",
+        "认证失败",
+        "鉴权失败",
+    ];
 
     /// <summary>
     /// 解析 JSON 响应并按 bodyPath 定位逻辑 body 节点。
